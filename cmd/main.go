@@ -4,6 +4,7 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	_ "github.com/givensuman/oci-tui/internal/client"
 	"github.com/givensuman/oci-tui/internal/ui"
 )

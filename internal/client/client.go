@@ -1,24 +1,24 @@
+// Package client defines means of communicating
+// with the OCI runtime
 package client
 
 import (
-	"context"
 	"log"
 
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/client"
 )
 
-var CLI *client.Client
+type Client struct {
+	Client *client.Client
+}
 
-func init() {
+func NewClient() (*Client, error) {
 	var err error
-	CLI, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		log.Fatalf("Failed to create Docker client: %v", err)
+		log.Fatalf("failed to create client")
+		return nil, err
 	}
 
-	// Test connection
-	_, err = CLI.Ping(context.Background(), client.PingOptions{})
-	if err != nil {
-		log.Fatalf("Failed to ping Docker daemon: %v", err)
-	}
+	return &Client{Client: cli}, nil
 }
