@@ -4,13 +4,13 @@ package client
 import (
 	"context"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 // Container represents a Docker container with essential details.
 type Container struct {
-	container.ContainerJSONBase
+	container.Config
 	ID    string `json:"Id"`
 	Name  string `json:"Name"`
 	Image string `json:"Image"`
@@ -40,18 +40,18 @@ func (cw *ClientWrapper) CloseClient() {
 func (cw *ClientWrapper) GetContainers() []Container {
 	containers, err := cw.client.ContainerList(
 		context.Background(),
-		container.ListOptions{All: true},
+		client.ContainerListOptions{All: true},
 	)
 	if err != nil {
 		panic(err)
 	}
 	var dockerContainers []Container
-	for _, container := range containers {
+	for _, container := range containers.Items {
 		dockerContainers = append(dockerContainers, Container{
 			ID:    container.ID,
 			Name:  container.Names[0][1:],
 			Image: container.Image,
-			State: container.State,
+			State: string(container.State),
 		})
 	}
 	return dockerContainers
@@ -59,13 +59,13 @@ func (cw *ClientWrapper) GetContainers() []Container {
 
 // GetContainerState retrieves the current state of a specific Docker container by its ID.
 func (cw *ClientWrapper) GetContainerState(id string) string {
-	container, _ := cw.client.ContainerInspect(context.Background(), id)
-	return container.State.Status
+	inspectResponse, _ := cw.client.ContainerInspect(context.Background(), id, client.ContainerInspectOptions{})
+	return string(inspectResponse.Container.State.Status)
 }
 
 // PauseContainer pauses a specific Docker container by its ID.
 func (cw *ClientWrapper) PauseContainer(id string) {
-	cw.client.ContainerPause(context.Background(), id)
+	cw.client.ContainerPause(context.Background(), id, client.ContainerPauseOptions{})
 }
 
 // PauseContainers pauses multiple Docker containers by their IDs.
@@ -77,7 +77,7 @@ func (cw *ClientWrapper) PauseContainers(ids []string) {
 
 // UnpauseContainer unpauses a specific Docker container by its ID.
 func (cw *ClientWrapper) UnpauseContainer(id string) {
-	cw.client.ContainerUnpause(context.Background(), id)
+	cw.client.ContainerUnpause(context.Background(), id, client.ContainerUnpauseOptions{})
 }
 
 // UnpauseContainers unpauses multiple Docker containers by their IDs.
@@ -89,7 +89,7 @@ func (cw *ClientWrapper) UnpauseContainers(ids []string) {
 
 // StartContainer starts a specific Docker container by its ID.
 func (cw *ClientWrapper) StartContainer(id string) {
-	cw.client.ContainerStart(context.Background(), id, container.StartOptions{})
+	cw.client.ContainerStart(context.Background(), id, client.ContainerStartOptions{})
 }
 
 // StartContainers starts multiple Docker containers by their IDs.
@@ -101,7 +101,7 @@ func (cw *ClientWrapper) StartContainers(ids []string) {
 
 // StopContainer stops a specific Docker container by its ID.
 func (cw *ClientWrapper) StopContainer(id string) {
-	cw.client.ContainerStop(context.Background(), id, container.StopOptions{})
+	cw.client.ContainerStop(context.Background(), id, client.ContainerStopOptions{})
 }
 
 // StopContainers stops multiple Docker containers by their IDs.

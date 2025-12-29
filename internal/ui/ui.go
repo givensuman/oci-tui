@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/givensuman/oci-tui/internal/color"
-	"github.com/givensuman/oci-tui/internal/client"
+	"github.com/givensuman/containertui/internal/color"
+	"github.com/givensuman/containertui/internal/client"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
