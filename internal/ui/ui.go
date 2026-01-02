@@ -1,20 +1,19 @@
-package	ui 
+package ui
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/givensuman/containertui/internal/color"
-	"github.com/givensuman/containertui/internal/client"
+	"github.com/givensuman/containertui/internal/context"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 var (
-	cw         = client.ClientWrapper{}
 	docStyle   = lipgloss.NewStyle().Margin(1, 2)
 	titleStyle = lipgloss.NewStyle().Padding(0, 1).
 			Foreground(lipgloss.Color("#FFFDF5")).
@@ -152,7 +151,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if selectedCount > 0 {
 				// pause seleted container
 				selectedIDs, selectedIndexes := m.getSelectedContainers()
-				cw.PauseContainers(selectedIDs)
+				context.GetClient().PauseContainers(selectedIDs)
 				items := m.list.Items()
 				for _, index := range selectedIndexes {
 					curItem := items[index].(Item)
@@ -163,7 +162,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// pause current container
 				selectedItem, ok := m.list.SelectedItem().(Item)
 				if ok {
-					cw.PauseContainer(selectedItem.ID)
+					context.GetClient().PauseContainer(selectedItem.ID)
 					selectedItem.State = "paused"
 					m.list.SetItem(m.list.Index(), selectedItem)
 				}
@@ -176,7 +175,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if selectedCount > 0 {
 				// unpause seleted container
 				selectedIDs, selectedIndexes := m.getSelectedContainers()
-				cw.UnpauseContainers(selectedIDs)
+				context.GetClient().UnpauseContainers(selectedIDs)
 				items := m.list.Items()
 				for _, index := range selectedIndexes {
 					curItem := items[index].(Item)
@@ -187,7 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// unpause current container
 				selectedItem, ok := m.list.SelectedItem().(Item)
 				if ok {
-					cw.UnpauseContainer(selectedItem.ID)
+					context.GetClient().UnpauseContainer(selectedItem.ID)
 					selectedItem.State = "running"
 					m.list.SetItem(m.list.Index(), selectedItem)
 				}
@@ -200,7 +199,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if selectedCount > 0 {
 				// start seleted container
 				selectedIDs, selectedIndexes := m.getSelectedContainers()
-				cw.StartContainers(selectedIDs)
+				context.GetClient().StartContainers(selectedIDs)
 				items := m.list.Items()
 				for _, index := range selectedIndexes {
 					curItem := items[index].(Item)
@@ -211,7 +210,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// start current container
 				selectedItem, ok := m.list.SelectedItem().(Item)
 				if ok {
-					cw.StartContainer(selectedItem.ID)
+					context.GetClient().StartContainer(selectedItem.ID)
 					selectedItem.State = "running"
 					m.list.SetItem(m.list.Index(), selectedItem)
 				}
@@ -223,7 +222,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if selectedCount > 0 {
 				// stop seleted container
 				selectedIDs, selectedIndexes := m.getSelectedContainers()
-				cw.StopContainers(selectedIDs)
+				context.GetClient().StopContainers(selectedIDs)
 				items := m.list.Items()
 				for _, index := range selectedIndexes {
 					curItem := items[index].(Item)
@@ -234,7 +233,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// stop current container
 				selectedItem, ok := m.list.SelectedItem().(Item)
 				if ok {
-					cw.StopContainer(selectedItem.ID)
+					context.GetClient().StopContainer(selectedItem.ID)
 					selectedItem.State = "exited"
 					m.list.SetItem(m.list.Index(), selectedItem)
 				}
@@ -258,7 +257,7 @@ func (m Model) View() string {
 }
 
 func getContainerItems() []list.Item {
-	containers := cw.GetContainers()
+	containers := context.GetClient().GetContainers()
 	var items []list.Item
 	for _, container := range containers {
 		items = append(
@@ -276,8 +275,6 @@ func getContainerItems() []list.Item {
 }
 
 func Start() {
-	cw.NewClient()
-	defer cw.CloseClient()
 	items := getContainerItems()
 	listKeys := newListKeyMap()
 	d := list.NewDefaultDelegate()

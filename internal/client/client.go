@@ -22,13 +22,14 @@ type ClientWrapper struct {
 	client *client.Client
 }
 
-// NewClient initializes a new Docker client.
-func (cw *ClientWrapper) NewClient() {
-	var err error
-	cw.client, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+// NewClient creates a new ClientWrapper with an initialized Docker client.
+func NewClient() *ClientWrapper {
+	dockerClient, err := client.New(client.FromEnv)
 	if err != nil {
 		panic(err.Error())
 	}
+
+	return &ClientWrapper{client: dockerClient}
 }
 
 // CloseClient closes the Docker client connection.
