@@ -1,51 +1,45 @@
+// Package ui provides the main user interface for the application.
 package ui
 
 import (
 	"fmt"
 	"os"
 
-	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/givensuman/containertui/internal/context"
+	"github.com/givensuman/containertui/internal/ui/containers"
 )
 
 type Model struct {
-	listModel ListModel
+	containersList containers.ListModel
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.listModel.Init()
+	return nil
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+		case tea.WindowSizeMsg:
+			context.SetWindowSize(msg.Width, msg.Height)
+	}
+
 	var cmd tea.Cmd
-	m.listModel, cmd = m.listModel.Update(msg)
+	m.containersList, cmd = m.containersList.Update(msg)
+
 	return m, cmd
 }
 
 func (m Model) View() tea.View {
-	v := tea.NewView(docStyle.Render(m.listModel.View()))
+	v := tea.NewView(m.containersList.View())
 	v.AltScreen = true
+
 	return v
 }
 
 func Start() {
-	listKeys := newListKeyMap()
-	l := NewList()
-	l.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listKeys.pauseContainer,
-			listKeys.unpauseContainer,
-			listKeys.startContainer,
-			listKeys.stopContainer,
-			listKeys.toggleSelect,
-		}
-	}
-	lm := ListModel{
-		list: l,
-		keys: listKeys,
-	}
 	m := Model{
-		listModel: lm,
+		containersList: containers.NewListModel(),
 	}
 
 	p := tea.NewProgram(m)

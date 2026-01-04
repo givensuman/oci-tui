@@ -1,4 +1,4 @@
-projectname?=oci-tui
+projectname?=containertui
 # Adapted from:
 # https://github.com/FalcoSuessgott/golang-cli-template
 
@@ -38,7 +38,6 @@ cover: ## display test coverage
 .PHONY: fmt
 fmt: ## format go files
 	gofumpt -w .
-	gci write .
 
 .PHONY: lint
 lint: ## lint go files
