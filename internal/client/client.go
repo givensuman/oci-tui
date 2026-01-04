@@ -60,7 +60,10 @@ func (cw *ClientWrapper) GetContainers() []Container {
 
 // GetContainerState retrieves the current state of a specific Docker container by its ID.
 func (cw *ClientWrapper) GetContainerState(id string) string {
-	inspectResponse, _ := cw.client.ContainerInspect(context.Background(), id, client.ContainerInspectOptions{})
+	inspectResponse, err := cw.client.ContainerInspect(context.Background(), id, client.ContainerInspectOptions{})
+	if err != nil {
+		return "unknown"
+	}
 	return string(inspectResponse.Container.State.Status)
 }
 
