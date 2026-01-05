@@ -52,47 +52,48 @@ var ansiColorMap = map[ANSIColor]string{
 	ColorBrightWhite:   "15",
 }
 
+// Yellow returns the yellow color, using config override if available
 func Yellow() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Yellow.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Yellow)
 	}
-
 	return lipgloss.Color(ColorBrightYellow.String())
 }
 
+// Green returns the green color, using config override if available
 func Green() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Green.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Green)
 	}
-
 	return lipgloss.Color(ColorBrightGreen.String())
 }
 
+// Red returns the red color, using config override if available
 func Red() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Red.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Red)
 	}
-
 	return lipgloss.Color(ColorBrightRed.String())
 }
 
+// Blue returns the blue color, using config override if available
 func Blue() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Blue.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Blue)
 	}
-
 	return lipgloss.Color(ColorBrightBlue.String())
 }
 
+// Primary returns the primary color, using config override if available, defaults to Blue
 func Primary() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Primary.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Primary)
 	}
-
-	return Blue()
+	return Blue() // Default to blue for primary
 }
+
