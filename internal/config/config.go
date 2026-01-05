@@ -9,15 +9,32 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ColorConfig holds color configuration.
+type ColorConfig struct {
+	Primary ConfigString `yaml:"primary,omitempty"`
+	Yellow  ConfigString `yaml:"yellow,omitempty"`
+	Green   ConfigString `yaml:"green,omitempty"`
+	Red     ConfigString `yaml:"red,omitempty"`
+	Blue    ConfigString `yaml:"blue,omitempty"`
+}
+
 // Config holds the application configuration.
 type Config struct {
-	NoNerdFonts bool `yaml:"no-nerd-fonts"`
+	NoNerdFonts ConfigBool        `yaml:"no-nerd-fonts"`
+	Colors      ColorConfig `yaml:"colors,omitempty"`
 }
 
 // DefaultConfig returns a default configuration.
 func DefaultConfig() *Config {
 	return &Config{
 		NoNerdFonts: false,
+		Colors: ColorConfig{
+			Primary: "",
+			Yellow:  "",
+			Green:   "",
+			Red:     "",
+			Blue:    "",
+		},
 	}
 }
 
