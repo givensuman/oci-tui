@@ -10,13 +10,11 @@ import (
 	"github.com/givensuman/containertui/internal/context"
 )
 
-// Model represents the application state
 type Model struct {
 	width  int
 	height int
 }
 
-// NewModel creates a new model with default values
 func NewModel() Model {
 	return Model{}
 }
@@ -75,6 +73,7 @@ func (m Model) View() string {
 
 func Start() error {
 	model := NewModel()
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	_, err := p.Run()
 	return err

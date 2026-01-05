@@ -56,7 +56,12 @@ func LoadFromFile(path string) (*Config, error) {
 		}
 		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		err = file.Close()
+	}()
+	if err != nil {
+		return nil, fmt.Errorf("failed to close file reader: %w", err)
+	}
 
 	var cfg Config
 	decoder := yaml.NewDecoder(file)

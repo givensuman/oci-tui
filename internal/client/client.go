@@ -34,7 +34,10 @@ func NewClient() *ClientWrapper {
 
 // CloseClient closes the Docker client connection.
 func (cw *ClientWrapper) CloseClient() {
-	cw.client.Close()
+	err := cw.client.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // GetContainers retrieves a list of all Docker containers.
@@ -69,7 +72,10 @@ func (cw *ClientWrapper) GetContainerState(id string) string {
 
 // PauseContainer pauses a specific Docker container by its ID.
 func (cw *ClientWrapper) PauseContainer(id string) {
-	cw.client.ContainerPause(context.Background(), id, client.ContainerPauseOptions{})
+	_, err := cw.client.ContainerPause(context.Background(), id, client.ContainerPauseOptions{})
+	if err != nil {
+		return
+	}
 }
 
 // PauseContainers pauses multiple Docker containers by their IDs.
@@ -81,7 +87,10 @@ func (cw *ClientWrapper) PauseContainers(ids []string) {
 
 // UnpauseContainer unpauses a specific Docker container by its ID.
 func (cw *ClientWrapper) UnpauseContainer(id string) {
-	cw.client.ContainerUnpause(context.Background(), id, client.ContainerUnpauseOptions{})
+	_, err := cw.client.ContainerUnpause(context.Background(), id, client.ContainerUnpauseOptions{})
+	if err != nil {
+		return
+	}
 }
 
 // UnpauseContainers unpauses multiple Docker containers by their IDs.
@@ -93,7 +102,10 @@ func (cw *ClientWrapper) UnpauseContainers(ids []string) {
 
 // StartContainer starts a specific Docker container by its ID.
 func (cw *ClientWrapper) StartContainer(id string) {
-	cw.client.ContainerStart(context.Background(), id, client.ContainerStartOptions{})
+	_, err := cw.client.ContainerStart(context.Background(), id, client.ContainerStartOptions{})
+	if err != nil {
+		return
+	}
 }
 
 // StartContainers starts multiple Docker containers by their IDs.
@@ -105,7 +117,10 @@ func (cw *ClientWrapper) StartContainers(ids []string) {
 
 // StopContainer stops a specific Docker container by its ID.
 func (cw *ClientWrapper) StopContainer(id string) {
-	cw.client.ContainerStop(context.Background(), id, client.ContainerStopOptions{})
+	_, err := cw.client.ContainerStop(context.Background(), id, client.ContainerStopOptions{})
+	if err != nil {
+		return
+	}
 }
 
 // StopContainers stops multiple Docker containers by their IDs.
