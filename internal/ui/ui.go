@@ -1,17 +1,24 @@
-// Package ui provides the main user interface for the application.
+// Package ui implements the terminal user interface
 package ui
 
 import (
-	"fmt"
-	"os"
+	"strings"
 
-	tea "charm.land/bubbletea/v2"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
-	"github.com/givensuman/containertui/internal/ui/containers"
 )
 
+// Model represents the application state
 type Model struct {
-	containersList containers.ListModel
+	width  int
+	height int
+}
+
+// NewModel creates a new model with default values
+func NewModel() Model {
+	return Model{}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -20,32 +27,55 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-		case tea.WindowSizeMsg:
-			context.SetWindowSize(msg.Width, msg.Height)
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		context.SetWindowSize(msg.Width, msg.Height)
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "ctrl+c", "ctrl+d":
+			return m, tea.Quit
+		}
 	}
-
-	var cmd tea.Cmd
-	m.containersList, cmd = m.containersList.Update(msg)
-
-	return m, cmd
+	return m, nil
 }
 
-func (m Model) View() tea.View {
-	v := tea.NewView(m.containersList.View())
-	v.AltScreen = true
+func (m Model) View() string {
+	// Create styles
+	titleStyle := lipgloss.NewStyle().
+		Foreground(colors.Primary()).
+		Bold(true).
+		Align(lipgloss.Center)
 
-	return v
+	subtitleStyle := lipgloss.NewStyle().
+		Foreground(colors.Yellow()).
+		Align(lipgloss.Center)
+
+	helpStyle := lipgloss.NewStyle().
+		Foreground(colors.Green()).
+		Align(lipgloss.Center)
+
+	// Content
+	title := titleStyle.Render("ContainerTUI")
+	subtitle := subtitleStyle.Render("A terminal UI for managing container lifecycles")
+	help := helpStyle.Render("Press 'q' to quit")
+
+	// Combine content
+	content := strings.Join([]string{title, "", subtitle, "", help}, "\n")
+
+	// Create a full-screen container
+	container := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center).
+		AlignVertical(lipgloss.Center)
+
+	return container.Render(content)
 }
 
-func Start() {
-	m := Model{
-		containersList: containers.NewListModel(),
-	}
-
-	p := tea.NewProgram(m)
-
-	if _, err := p.Run(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+func Start() error {
+	model := NewModel()
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	_, err := p.Run()
+	return err
 }
