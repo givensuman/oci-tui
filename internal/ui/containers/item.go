@@ -45,12 +45,12 @@ func (ci ContainerItem) getIsSelectedIcon() string {
 func (ci ContainerItem) getTitleOrnament() string {
 	switch context.GetConfig().NoNerdFonts {
 	case true: // Don't use nerd fonts
-		return "|"
+		return ""
 	case false: // Use nerd fonts
 		return " "
 	}
 
-	return "|"
+	return ""
 }
 
 func (ci ContainerItem) getContainerStateIcon() string {
@@ -76,6 +76,24 @@ func (ci ContainerItem) getContainerStateIcon() string {
 	}
 
 	return ">"
+}
+
+func newDefaultDelegate() list.DefaultDelegate {
+	d := list.NewDefaultDelegate()
+
+	d.Styles.SelectedTitle = d.Styles.SelectedTitle.
+		BorderLeftForeground(colors.Primary())
+	d.Styles.SelectedDesc = d.Styles.SelectedDesc.
+		Foreground(colors.White()).
+		BorderLeftForeground(colors.Primary())
+
+	d.Styles.DimmedDesc = d.Styles.DimmedDesc.
+		Foreground(colors.Gray())
+
+	d.Styles.FilterMatch = d.Styles.FilterMatch.
+		Foreground(colors.Primary())
+
+	return d
 }
 
 func (ci ContainerItem) FilterValue() string {
@@ -123,18 +141,5 @@ func (ci ContainerItem) Title() string {
 }
 
 func (ci ContainerItem) Description() string {
-	var color lipgloss.Color
-	switch ci.State {
-	case container.StateRunning:
-		color = colors.Green()
-	case container.StatePaused:
-		color = colors.Yellow()
-	case container.StateExited:
-		color = colors.Gray()
-	}
-
-	description := fmt.Sprintf("   %s - %s", ci.Image, ci.State)
-	return lipgloss.NewStyle().
-		Foreground(color).
-		Render(description)
+	return fmt.Sprintf("   %s - %s", ci.Image, ci.State)
 }

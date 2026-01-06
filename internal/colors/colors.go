@@ -6,7 +6,6 @@ import (
 	"github.com/givensuman/containertui/internal/context"
 )
 
-// ANSI color constants
 const (
 	ColorBlack ANSIColor = iota
 	ColorRed
@@ -28,7 +27,6 @@ const (
 
 type ANSIColor int
 
-// String returns the ANSI color code
 func (c ANSIColor) String() string {
 	return ansiColorMap[c]
 }
@@ -52,21 +50,21 @@ var ansiColorMap = map[ANSIColor]string{
 	ColorBrightWhite:   "15",
 }
 
-// Yellow returns the yellow color, using config override if available
 func Yellow() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Yellow.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Yellow)
 	}
+
 	return lipgloss.Color(ColorBrightYellow.String())
 }
 
-// Green returns the green color, using config override if available
 func Green() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Green.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Green)
 	}
+
 	return lipgloss.Color(ColorBrightGreen.String())
 }
 
@@ -75,6 +73,7 @@ func Gray() lipgloss.Color {
 	if cfg.Colors.Gray.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Gray)
 	}
+
 	return lipgloss.Color(ColorBrightBlack.String())
 }
 
@@ -83,6 +82,7 @@ func Blue() lipgloss.Color {
 	if cfg.Colors.Blue.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Blue)
 	}
+
 	return lipgloss.Color(ColorBlue.String())
 }
 
@@ -91,14 +91,15 @@ func White() lipgloss.Color {
 	if cfg.Colors.White.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.White)
 	}
+
 	return lipgloss.Color(ColorWhite.String())
 }
 
-// Primary returns the primary color, using config override if available, defaults to Blue
 func Primary() lipgloss.Color {
 	cfg := context.GetConfig()
 	if cfg.Colors.Primary.IsAssigned() {
 		return lipgloss.Color(cfg.Colors.Primary)
 	}
-	return Gray() // Default to blue for primary
+
+	return Blue()
 }

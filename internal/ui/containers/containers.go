@@ -3,7 +3,6 @@ package containers
 
 import (
 	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 type keybindings struct {
@@ -34,7 +33,7 @@ func newKeybindings() *keybindings {
 		),
 		toggleSelect: key.NewBinding(
 			key.WithKeys(" "),
-			key.WithHelp(tea.KeySpace.String(), "toggle selection"),
+			key.WithHelp("space", "toggle selection"),
 		),
 	}
 }

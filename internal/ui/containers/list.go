@@ -4,8 +4,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/context"
 )
+
+var style lipgloss.Style = lipgloss.NewStyle().Margin(1, 2)
 
 type Model struct {
 	list               list.Model
@@ -29,7 +32,7 @@ func NewContainersList() Model {
 	}
 
 	width, height := context.GetWindowSize()
-	list := list.New(containerItems, list.NewDefaultDelegate(), width, height)
+	list := list.New(containerItems, newDefaultDelegate(), width, height)
 
 	keybindings := newKeybindings()
 	list.AdditionalFullHelpKeys = func() []key.Binding {
@@ -60,8 +63,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
-		m.list.SetHeight(msg.Height)
+		widthOffset, heightOffset := style.GetFrameSize()
+		m.list.SetWidth(msg.Width - widthOffset)
+		m.list.SetHeight(msg.Height - heightOffset)
 	}
 
 	list, cmd := m.list.Update(msg)
@@ -71,5 +75,5 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	return m.list.View()
+	return style.Render(m.list.View())
 }
