@@ -88,10 +88,12 @@ func newDefaultDelegate() list.DefaultDelegate {
 		BorderLeftForeground(colors.Primary())
 
 	d.Styles.DimmedDesc = d.Styles.DimmedDesc.
-		Foreground(colors.Gray())
+		Foreground(colors.Gray()).
+		Bold(false)
 
 	d.Styles.FilterMatch = d.Styles.FilterMatch.
-		Foreground(colors.Primary())
+		Foreground(colors.Primary()).
+		Bold(true)
 
 	return d
 }
