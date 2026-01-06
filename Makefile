@@ -37,7 +37,7 @@ cover: ## display test coverage
 
 .PHONY: fmt
 fmt: ## format go files
-	gofumpt -w .
+	gofmt -w -s -l .
 
 .PHONY: lint
 lint: ## lint go files

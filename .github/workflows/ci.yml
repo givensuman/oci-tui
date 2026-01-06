@@ -33,13 +33,8 @@ jobs:
     - name: Tidy modules
       run: go mod tidy
 
-    - name: Check formatting
-      run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted with gofmt"
-          gofmt -s -l .
-          exit 1
-        fi
+    - name: Format
+      run: if [ "$(make fmt | wc -l)" -gt 1 ]; then exit 1; fi
 
     - name: Lint
       uses: golangci/golangci-lint-action@v4
@@ -47,7 +42,7 @@ jobs:
         version: latest
 
     - name: Run tests
-      run: go test -v ./...
+      run: make test
 
     - name: Build
-      run: go build ./cmd
+      run: make build
