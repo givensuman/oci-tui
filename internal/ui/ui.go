@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/containers"
+	"os"
 )
 
 type Model struct {
@@ -56,18 +57,20 @@ func (m Model) View() string {
 func Start() error {
 	model := NewModel()
 
-	file, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		err = file.Close()
-	}()
-	if err != nil {
-		panic(err)
+	if os.Getenv("ENV") != "production" {
+		file, err := tea.LogToFile("debug.log", "debug")
+		if err != nil {
+			panic(err)
+		}
+		defer func() {
+			err = file.Close()
+		}()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	_, err = p.Run()
+	_, err := p.Run()
 	return err
 }
