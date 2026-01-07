@@ -18,7 +18,7 @@ type Model struct {
 
 var _ tea.Model = (*Model)(nil)
 
-func NewContainersList() Model {
+func New() Model {
 	containers := context.GetClient().GetContainers()
 	var containerItems []list.Item
 	for _, container := range containers {

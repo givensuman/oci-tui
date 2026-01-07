@@ -2,10 +2,12 @@
 package ui
 
 import (
+	"os"
+
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/containers"
-	"os"
 )
 
 type Model struct {
