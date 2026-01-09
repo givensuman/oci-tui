@@ -15,6 +15,7 @@ type keybindings struct {
 	stopContainer        key.Binding
 	toggleSelection      key.Binding
 	toggleSelectionOfAll key.Binding
+	removeContainer      key.Binding
 }
 
 func newKeybindings() *keybindings {
@@ -34,6 +35,10 @@ func newKeybindings() *keybindings {
 		stopContainer: key.NewBinding(
 			key.WithKeys("S"),
 			key.WithHelp("S", "stop container"),
+		),
+		removeContainer: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "remove container"),
 		),
 		toggleSelection: key.NewBinding(
 			key.WithKeys(tea.KeySpace.String()),
@@ -109,6 +114,7 @@ func newContainerList() ContainerList {
 			keybindings.unpauseContainer,
 			keybindings.startContainer,
 			keybindings.stopContainer,
+			keybindings.removeContainer,
 			keybindings.toggleSelection,
 			keybindings.toggleSelectionOfAll,
 		}
@@ -117,44 +123,72 @@ func newContainerList() ContainerList {
 	return ContainerList{style, list, selectedContainers, keybindings}
 }
 
-func (m ContainerList) Init() tea.Cmd {
-	return nil
-}
-
-func (m ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.style = m.style.Width(msg.Width).Height(msg.Height)
-		widthOffset, heightOffset := m.style.GetFrameSize()
-
-		m.list.SetWidth(msg.Width - widthOffset)
-		m.list.SetHeight(msg.Height - heightOffset)
-	case tea.KeyMsg:
-		if m.list.FilterState() == list.Filtering {
-			break
-		}
-		switch {
-		case key.Matches(msg, m.keybindings.pauseContainer):
-			m.handlePauseContainers()
-		case key.Matches(msg, m.keybindings.unpauseContainer):
-			m.handleUnpauseContainers()
-		case key.Matches(msg, m.keybindings.startContainer):
-			m.handleStartContainers()
-		case key.Matches(msg, m.keybindings.stopContainer):
-			m.handleStopContainers()
-		case key.Matches(msg, m.keybindings.toggleSelection):
-			m.handleToggleSelection()
-		case key.Matches(msg, m.keybindings.toggleSelectionOfAll):
-			m.handleToggleSelectionOfAll()
+func (cl *ContainerList) getItemListIndexById(id string) (int, bool) {
+	for index, item := range cl.list.Items() {
+		item, ok := item.(ContainerItem)
+		if ok {
+			if item.ID == id {
+				return index, ok
+			}
 		}
 	}
 
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	return -1, false
 }
 
-func (m ContainerList) View() string {
-	return m.style.Render(m.list.View())
+func (cl ContainerList) Init() tea.Cmd {
+	return nil
+}
+
+func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		cl.style = cl.style.Width(msg.Width).Height(msg.Height)
+		widthOffset, heightOffset := cl.style.GetFrameSize()
+
+		cl.list.SetWidth(msg.Width - widthOffset)
+		cl.list.SetHeight(msg.Height - heightOffset)
+
+	case MessageConfirmDelete:
+		cl.handleConfirmationOfRemoveContainer(msg)
+
+	case tea.KeyMsg:
+		if cl.list.FilterState() == list.Filtering {
+			break
+		}
+
+		switch {
+		case key.Matches(msg, cl.keybindings.pauseContainer):
+			cl.handlePauseContainers()
+		case key.Matches(msg, cl.keybindings.unpauseContainer):
+			cl.handleUnpauseContainers()
+		case key.Matches(msg, cl.keybindings.startContainer):
+			cl.handleStartContainers()
+		case key.Matches(msg, cl.keybindings.stopContainer):
+			cl.handleStopContainers()
+		case key.Matches(msg, cl.keybindings.removeContainer):
+			item, ok := cl.list.SelectedItem().(ContainerItem)
+			if ok {
+				cmds = append(cmds, func() tea.Msg {
+					return MessageOpenDeleteConfirmationDialog{&item}
+				})
+			}
+		case key.Matches(msg, cl.keybindings.toggleSelection):
+			cl.handleToggleSelection()
+		case key.Matches(msg, cl.keybindings.toggleSelectionOfAll):
+			cl.handleToggleSelectionOfAll()
+		}
+	}
+
+	cl.list, cmd = cl.list.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return cl, tea.Batch(cmds...)
+}
+
+func (cl ContainerList) View() string {
+	return cl.style.Render(cl.list.View())
 }

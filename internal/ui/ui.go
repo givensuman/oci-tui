@@ -42,9 +42,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c", "ctrl+d":
 			return m, tea.Quit
-
-		case tea.KeyTab.String():
-			m.containersModel.ToggleOverlay()
 		}
 	}
 

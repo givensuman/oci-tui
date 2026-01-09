@@ -19,14 +19,14 @@ type Model struct {
 	width        int
 	height       int
 	foreground   tea.Model
-	background   tea.Model
+	background   ContainerList
 	overlayModel *overlay.Model
 }
 
 func New() Model {
 	width, height := context.GetWindowSize()
 
-	deleteConfirmation := NewDeleteConfirmation(nil)
+	deleteConfirmation := newDeleteConfirmation(nil)
 	containerList := newContainerList()
 
 	return Model{
@@ -46,15 +46,6 @@ func New() Model {
 	}
 }
 
-func (m *Model) ToggleOverlay() {
-	switch m.sessionState {
-	case viewMain:
-		m.sessionState = viewOverlay
-	case viewOverlay:
-		m.sessionState = viewMain
-	}
-}
-
 func (m Model) Init() tea.Cmd {
 	return nil
 }
@@ -63,21 +54,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-	}
-
 	switch m.sessionState {
 	case viewMain:
 		bg, cmd := m.background.Update(msg)
-		m.background = bg
+		m.background = bg.(ContainerList)
 		cmds = append(cmds, cmd)
 	case viewOverlay:
 		fg, cmd := m.foreground.Update(msg)
 		m.foreground = fg
 		cmds = append(cmds, cmd)
+	}
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+	case MessageCloseOverlay:
+		m.sessionState = viewMain
+	case MessageOpenDeleteConfirmationDialog:
+		m.foreground = newDeleteConfirmation(msg.item)
+		m.sessionState = viewOverlay
 	}
 
 	m.overlayModel = overlay.New(
@@ -93,7 +89,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.sessionState == viewOverlay {
+	if m.sessionState == viewOverlay && m.foreground != nil {
 		return m.overlayModel.View()
 	}
 
