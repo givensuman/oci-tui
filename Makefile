@@ -10,7 +10,6 @@ help: ## list makefile targets
 
 .PHONY: build
 build: ## build golang binary
-	ENV=production
 	@mkdir -p bin
 	go build -ldflags="-s -w" -trimpath -o bin/$(projectname) ./cmd
 
@@ -20,7 +19,7 @@ install: ## install golang binary
 
 .PHONY: run
 run: ## run the app
-	ENV=development
+	DEBUG=true
 	go run ./cmd
 
 .PHONY: test

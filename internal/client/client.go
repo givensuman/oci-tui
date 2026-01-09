@@ -1,4 +1,4 @@
-// Package client exposes a Docker client wrapper for managing containers.
+// Package client exposes a Docker client wrapper for managing containers
 package client
 
 import (
@@ -8,7 +8,7 @@ import (
 	"github.com/moby/moby/client"
 )
 
-// Container represents a Docker container with essential details.
+// Container represents a Docker container with essential details
 type Container struct {
 	container.Config
 	ID    string                   `json:"Id"`
@@ -17,12 +17,12 @@ type Container struct {
 	State container.ContainerState `json:"State"`
 }
 
-// ClientWrapper wraps the Docker client to provide container management functionalities.
+// ClientWrapper wraps the Docker client to provide container management functionalities
 type ClientWrapper struct {
 	client *client.Client
 }
 
-// NewClient creates a new ClientWrapper with an initialized Docker client.
+// NewClient creates a new ClientWrapper with an initialized Docker client
 func NewClient() *ClientWrapper {
 	dockerClient, err := client.New(client.FromEnv)
 	if err != nil {
@@ -32,7 +32,7 @@ func NewClient() *ClientWrapper {
 	return &ClientWrapper{client: dockerClient}
 }
 
-// CloseClient closes the Docker client connection.
+// CloseClient closes the Docker client connection
 func (cw *ClientWrapper) CloseClient() {
 	err := cw.client.Close()
 	if err != nil {
@@ -40,7 +40,7 @@ func (cw *ClientWrapper) CloseClient() {
 	}
 }
 
-// GetContainers retrieves a list of all Docker containers.
+// GetContainers retrieves a list of all Docker containers
 func (cw *ClientWrapper) GetContainers() []Container {
 	containers, err := cw.client.ContainerList(
 		context.Background(),
@@ -61,7 +61,7 @@ func (cw *ClientWrapper) GetContainers() []Container {
 	return dockerContainers
 }
 
-// GetContainerState retrieves the current state of a specific Docker container by its ID.
+// GetContainerState retrieves the current state of a specific Docker container by its ID
 func (cw *ClientWrapper) GetContainerState(id string) string {
 	inspectResponse, err := cw.client.ContainerInspect(context.Background(), id, client.ContainerInspectOptions{})
 	if err != nil {
@@ -70,7 +70,7 @@ func (cw *ClientWrapper) GetContainerState(id string) string {
 	return string(inspectResponse.Container.State.Status)
 }
 
-// PauseContainer pauses a specific Docker container by its ID.
+// PauseContainer pauses a specific Docker container by its ID
 func (cw *ClientWrapper) PauseContainer(id string) {
 	_, err := cw.client.ContainerPause(context.Background(), id, client.ContainerPauseOptions{})
 	if err != nil {
@@ -78,14 +78,14 @@ func (cw *ClientWrapper) PauseContainer(id string) {
 	}
 }
 
-// PauseContainers pauses multiple Docker containers by their IDs.
+// PauseContainers pauses multiple Docker containers by their IDs
 func (cw *ClientWrapper) PauseContainers(ids []string) {
 	for _, id := range ids {
 		cw.PauseContainer(id)
 	}
 }
 
-// UnpauseContainer unpauses a specific Docker container by its ID.
+// UnpauseContainer unpauses a specific Docker container by its ID
 func (cw *ClientWrapper) UnpauseContainer(id string) {
 	_, err := cw.client.ContainerUnpause(context.Background(), id, client.ContainerUnpauseOptions{})
 	if err != nil {
@@ -93,14 +93,14 @@ func (cw *ClientWrapper) UnpauseContainer(id string) {
 	}
 }
 
-// UnpauseContainers unpauses multiple Docker containers by their IDs.
+// UnpauseContainers unpauses multiple Docker containers by their IDs
 func (cw *ClientWrapper) UnpauseContainers(ids []string) {
 	for _, id := range ids {
 		cw.UnpauseContainer(id)
 	}
 }
 
-// StartContainer starts a specific Docker container by its ID.
+// StartContainer starts a specific Docker container by its ID
 func (cw *ClientWrapper) StartContainer(id string) {
 	_, err := cw.client.ContainerStart(context.Background(), id, client.ContainerStartOptions{})
 	if err != nil {
@@ -108,14 +108,14 @@ func (cw *ClientWrapper) StartContainer(id string) {
 	}
 }
 
-// StartContainers starts multiple Docker containers by their IDs.
+// StartContainers starts multiple Docker containers by their IDs
 func (cw *ClientWrapper) StartContainers(ids []string) {
 	for _, id := range ids {
 		cw.StartContainer(id)
 	}
 }
 
-// StopContainer stops a specific Docker container by its ID.
+// StopContainer stops a specific Docker container by its ID
 func (cw *ClientWrapper) StopContainer(id string) {
 	_, err := cw.client.ContainerStop(context.Background(), id, client.ContainerStopOptions{})
 	if err != nil {
@@ -123,9 +123,17 @@ func (cw *ClientWrapper) StopContainer(id string) {
 	}
 }
 
-// StopContainers stops multiple Docker containers by their IDs.
+// StopContainers stops multiple Docker containers by their IDs
 func (cw *ClientWrapper) StopContainers(ids []string) {
 	for _, id := range ids {
 		cw.StopContainer(id)
+	}
+}
+
+// RemoveContainer removes a specific Docker container by its ID
+func (cw *ClientWrapper) RemoveContainer(id string) {
+	_, err := cw.client.ContainerRemove(context.Background(), id, client.ContainerRemoveOptions{})
+	if err != nil {
+		return
 	}
 }

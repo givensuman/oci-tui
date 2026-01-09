@@ -8,17 +8,73 @@ import (
 	"github.com/givensuman/containertui/internal/context"
 )
 
-var style lipgloss.Style = lipgloss.NewStyle().Margin(1, 2)
+type keybindings struct {
+	pauseContainer       key.Binding
+	unpauseContainer     key.Binding
+	startContainer       key.Binding
+	stopContainer        key.Binding
+	toggleSelection      key.Binding
+	toggleSelectionOfAll key.Binding
+}
 
-type Model struct {
+func newKeybindings() *keybindings {
+	return &keybindings{
+		pauseContainer: key.NewBinding(
+			key.WithKeys("p"),
+			key.WithHelp("p", "pause container"),
+		),
+		unpauseContainer: key.NewBinding(
+			key.WithKeys("P"),
+			key.WithHelp("P", "unpause container"),
+		),
+		startContainer: key.NewBinding(
+			key.WithKeys("s"),
+			key.WithHelp("s", "start container"),
+		),
+		stopContainer: key.NewBinding(
+			key.WithKeys("S"),
+			key.WithHelp("S", "stop container"),
+		),
+		toggleSelection: key.NewBinding(
+			key.WithKeys(tea.KeySpace.String()),
+			key.WithHelp("space", "toggle selection"),
+		),
+		toggleSelectionOfAll: key.NewBinding(
+			key.WithKeys(tea.KeyCtrlA.String()),
+			key.WithHelp("ctrl+a", "toggle selection of all"),
+		),
+	}
+}
+
+// selectedContainers is map of a container's ID to
+// its index in the list
+type selectedContainers struct {
+	selections map[string]int
+}
+
+func newSelectedContainers() *selectedContainers {
+	return &selectedContainers{
+		selections: make(map[string]int),
+	}
+}
+
+func (sc *selectedContainers) selectContainerInList(id string, index int) {
+	sc.selections[id] = index
+}
+
+func (sc selectedContainers) unselectContainerInList(id string) {
+	delete(sc.selections, id)
+}
+type ContainerList struct {
+	style              lipgloss.Style
 	list               list.Model
 	selectedContainers *selectedContainers
 	keybindings        *keybindings
 }
 
-var _ tea.Model = (*Model)(nil)
+var _ tea.Model = (*ContainerList)(nil)
 
-func New() Model {
+func newContainerList() ContainerList {
 	containers := context.GetClient().GetContainers()
 	var containerItems []list.Item
 	for _, container := range containers {
@@ -32,11 +88,16 @@ func New() Model {
 	}
 
 	width, height := context.GetWindowSize()
+	style := lipgloss.NewStyle().
+		Width(width).
+		Height(height).
+		PaddingTop(1)
+
 	list := list.New(containerItems, newDefaultDelegate(), width, height)
 
 	list.SetShowTitle(false)
 	list.SetShowStatusBar(false)
-	list.SetFilteringEnabled(false) // TODO: Workout styling issues with filtering
+	list.SetFilteringEnabled(false)
 
 	selectedContainers := newSelectedContainers()
 
@@ -52,19 +113,21 @@ func New() Model {
 		}
 	}
 
-	return Model{list, selectedContainers, keybindings}
+	return ContainerList{style, list, selectedContainers, keybindings}
 }
 
-func (m Model) Init() tea.Cmd {
+func (m ContainerList) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		widthOffset, heightOffset := style.GetFrameSize()
+		m.style = m.style.Width(msg.Width).Height(msg.Height)
+		widthOffset, heightOffset := m.style.GetFrameSize()
+
 		m.list.SetWidth(msg.Width - widthOffset)
 		m.list.SetHeight(msg.Height - heightOffset)
 	case tea.KeyMsg:
@@ -91,6 +154,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) View() string {
-	return style.Render(m.list.View())
+func (m ContainerList) View() string {
+	return m.style.Render(m.list.View())
 }

@@ -1,9 +1,7 @@
-// Package ui implements the terminal user interface.
+// Package ui implements the terminal user interface
 package ui
 
 import (
-	"os"
-
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/givensuman/containertui/internal/context"
@@ -22,7 +20,7 @@ func NewModel() Model {
 	return Model{
 		width:           width,
 		height:          height,
-		containersModel: containers.NewContainersList(),
+		containersModel: containers.New(),
 	}
 }
 
@@ -32,23 +30,29 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		context.SetWindowSize(msg.Width, msg.Height)
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "ctrl+d":
 			return m, tea.Quit
+
+		case tea.KeyTab.String():
+			m.containersModel.ToggleOverlay()
 		}
 	}
 
 	containersModel, cmd := m.containersModel.Update(msg)
 	m.containersModel = containersModel.(containers.Model)
+	cmds = append(cmds, cmd)
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
@@ -58,19 +62,6 @@ func (m Model) View() string {
 // Start the UI rendering loop.
 func Start() error {
 	model := NewModel()
-
-	if os.Getenv("ENV") != "production" {
-		file, err := tea.LogToFile("debug.log", "debug")
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			err = file.Close()
-		}()
-		if err != nil {
-			panic(err)
-		}
-	}
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	_, err := p.Run()

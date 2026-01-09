@@ -5,7 +5,7 @@ import (
 	"github.com/moby/moby/api/types/container"
 )
 
-func (m *Model) getSelectedContainerIDs() []string {
+func (m *ContainerList) getSelectedContainerIDs() []string {
 	selectedContainerIDs := make([]string, len(m.selectedContainers.selections))
 	for id := range m.selectedContainers.selections {
 		selectedContainerIDs = append(selectedContainerIDs, id)
@@ -14,7 +14,7 @@ func (m *Model) getSelectedContainerIDs() []string {
 	return selectedContainerIDs
 }
 
-func (m *Model) getSelectedContainerIndices() []int {
+func (m *ContainerList) getSelectedContainerIndices() []int {
 	selectedContainerIndices := make([]int, len(m.selectedContainers.selections))
 	for _, index := range m.selectedContainers.selections {
 		selectedContainerIndices = append(selectedContainerIndices, index)
@@ -23,7 +23,7 @@ func (m *Model) getSelectedContainerIndices() []int {
 	return selectedContainerIndices
 }
 
-func (m *Model) handlePauseContainers() {
+func (m *ContainerList) handlePauseContainers() {
 	if len(m.selectedContainers.selections) > 0 {
 		selectedContainerIDs := m.getSelectedContainerIDs()
 		selectedContainerIndices := m.getSelectedContainerIndices()
@@ -45,7 +45,7 @@ func (m *Model) handlePauseContainers() {
 	}
 }
 
-func (m *Model) handleUnpauseContainers() {
+func (m *ContainerList) handleUnpauseContainers() {
 	if len(m.selectedContainers.selections) > 0 {
 		selectedContainerIDs := m.getSelectedContainerIDs()
 		selectedContainerIndices := m.getSelectedContainerIndices()
@@ -67,7 +67,7 @@ func (m *Model) handleUnpauseContainers() {
 	}
 }
 
-func (m *Model) handleStartContainers() {
+func (m *ContainerList) handleStartContainers() {
 	if len(m.selectedContainers.selections) > 0 {
 		selectedContainerIDs := m.getSelectedContainerIDs()
 		selectedContainerIndices := m.getSelectedContainerIndices()
@@ -89,7 +89,7 @@ func (m *Model) handleStartContainers() {
 	}
 }
 
-func (m *Model) handleStopContainers() {
+func (m *ContainerList) handleStopContainers() {
 	if len(m.selectedContainers.selections) > 0 {
 		selectedContainerIDs := m.getSelectedContainerIDs()
 		selectedContainerIndices := m.getSelectedContainerIndices()
@@ -111,7 +111,7 @@ func (m *Model) handleStopContainers() {
 	}
 }
 
-func (m *Model) handleToggleSelection() {
+func (m *ContainerList) handleToggleSelection() {
 	index := m.list.Index()
 	selectedItem, ok := m.list.SelectedItem().(ContainerItem)
 	if ok {
@@ -128,7 +128,7 @@ func (m *Model) handleToggleSelection() {
 	}
 }
 
-func (m *Model) handleToggleSelectionOfAll() {
+func (m *ContainerList) handleToggleSelectionOfAll() {
 	allAlreadySelected := true
 	items := m.list.Items()
 

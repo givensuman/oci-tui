@@ -63,6 +63,8 @@ func main() {
 			context.InitializeClient()
 			defer context.CloseClient()
 
+			context.InitializeLog()
+
 			if err := ui.Start(); err != nil {
 				return fmt.Errorf("failed to run application: %w", err)
 			}
