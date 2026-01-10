@@ -76,7 +76,7 @@ func (dc DeleteConfirmation) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case tea.KeyEscape.String(), tea.KeyEsc.String():
-			cmds = append(cmds, func() tea.Msg { return MessageCloseOverlay{} })
+			cmds = append(cmds, CloseOverlay())
 
 		case tea.KeyTab.String(), tea.KeyShiftTab.String():
 			switch dc.hoveredButtonOption {

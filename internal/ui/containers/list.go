@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/context"
+	"github.com/givensuman/containertui/internal/ui/types"
 )
 
 type keybindings struct {
@@ -13,9 +14,10 @@ type keybindings struct {
 	unpauseContainer     key.Binding
 	startContainer       key.Binding
 	stopContainer        key.Binding
+	removeContainer      key.Binding
+	showLogs             key.Binding
 	toggleSelection      key.Binding
 	toggleSelectionOfAll key.Binding
-	removeContainer      key.Binding
 }
 
 func newKeybindings() *keybindings {
@@ -39,6 +41,10 @@ func newKeybindings() *keybindings {
 		removeContainer: key.NewBinding(
 			key.WithKeys("r"),
 			key.WithHelp("r", "remove container"),
+		),
+		showLogs: key.NewBinding(
+			key.WithKeys("l"),
+			key.WithHelp("l", "show container logs"),
 		),
 		toggleSelection: key.NewBinding(
 			key.WithKeys(tea.KeySpace.String()),
@@ -72,13 +78,17 @@ func (sc selectedContainers) unselectContainerInList(id string) {
 }
 
 type ContainerList struct {
+	types.Component
 	style              lipgloss.Style
 	list               list.Model
 	selectedContainers *selectedContainers
 	keybindings        *keybindings
 }
 
-var _ tea.Model = (*ContainerList)(nil)
+var (
+	_ tea.Model            = (*ContainerList)(nil)
+	_ types.ComponentModel = (*ContainerList)(nil)
+)
 
 func newContainerList() ContainerList {
 	containers := context.GetClient().GetContainers()
@@ -105,8 +115,6 @@ func newContainerList() ContainerList {
 	list.SetShowStatusBar(false)
 	list.SetFilteringEnabled(false)
 
-	selectedContainers := newSelectedContainers()
-
 	keybindings := newKeybindings()
 	list.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
@@ -115,12 +123,23 @@ func newContainerList() ContainerList {
 			keybindings.startContainer,
 			keybindings.stopContainer,
 			keybindings.removeContainer,
+			keybindings.showLogs,
 			keybindings.toggleSelection,
 			keybindings.toggleSelectionOfAll,
 		}
 	}
 
-	return ContainerList{style, list, selectedContainers, keybindings}
+	return ContainerList{
+		style:              style,
+		list:               list,
+		selectedContainers: newSelectedContainers(),
+		keybindings:        keybindings,
+	}
+}
+
+func (cl *ContainerList) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
+	cl.WindowWidth = msg.Width
+	cl.WindowHeight = msg.Height
 }
 
 func (cl ContainerList) Init() tea.Cmd {
@@ -158,6 +177,9 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cl.handleStopContainers()
 		case key.Matches(msg, cl.keybindings.removeContainer):
 			cmd = cl.handleRemoveContainers()
+			cmds = append(cmds, cmd)
+		case key.Matches(msg, cl.keybindings.showLogs):
+			cmd = cl.handleShowLogs()
 			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.toggleSelection):
 			cl.handleToggleSelection()

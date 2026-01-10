@@ -1,9 +1,9 @@
-// Package containers defines the containers list component
+// Package containers defines the containers component
 package containers
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/givensuman/containertui/internal/context"
+	"github.com/givensuman/containertui/internal/ui/types"
 	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
@@ -15,24 +15,24 @@ const (
 )
 
 type Model struct {
+	types.Component
 	sessionState sessionState
-	width        int
-	height       int
 	foreground   tea.Model
-	background   ContainerList
+	background   tea.Model
 	overlayModel *overlay.Model
 }
 
-func New() Model {
-	width, height := context.GetWindowSize()
+var (
+	_ tea.Model            = (*Model)(nil)
+	_ types.ComponentModel = (*Model)(nil)
+)
 
+func New() Model {
 	deleteConfirmation := newDeleteConfirmation(nil)
 	containerList := newContainerList()
 
 	return Model{
 		sessionState: viewMain,
-		width:        width,
-		height:       height,
 		foreground:   deleteConfirmation,
 		background:   containerList,
 		overlayModel: overlay.New(
@@ -46,7 +46,10 @@ func New() Model {
 	}
 }
 
-var _ tea.Model = (*Model)(nil)
+func (m *Model) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
+	m.WindowWidth = msg.Width
+	m.WindowHeight = msg.Height
+}
 
 func (m Model) Init() tea.Cmd {
 	return nil
@@ -69,12 +72,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+		m.UpdateWindowDimensions(msg)
+
 	case MessageCloseOverlay:
 		m.sessionState = viewMain
+
 	case MessageOpenDeleteConfirmationDialog:
 		m.foreground = newDeleteConfirmation(msg.requestedContainersToDelete...)
+		m.sessionState = viewOverlay
+
+	case MessageOpenContainerLogs:
+		m.foreground = newContainerLogs(msg.container)
 		m.sessionState = viewOverlay
 	}
 

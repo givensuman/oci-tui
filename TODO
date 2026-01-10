@@ -1,2 +1,2 @@
 Not sure if config system works yet from file
-Handle toggleSelectionOfAll
+Modify keys component with state, possibly through context?

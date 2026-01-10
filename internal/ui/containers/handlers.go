@@ -1,6 +1,8 @@
 package containers
 
 import (
+	"log"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/moby/moby/api/types/container"
@@ -137,6 +139,21 @@ func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
 	}
 
 	return nil
+}
+
+func (cl *ContainerList) handleShowLogs() tea.Cmd {
+	item, ok := cl.list.SelectedItem().(ContainerItem)
+	if !ok {
+		log.Print()
+		return nil
+	}
+
+	if item.State != container.StateRunning {
+		log.Printf("%s is not running...", item.Name)
+		return nil
+	}
+
+	return OpenContainerLogs(&item)
 }
 
 func (cl *ContainerList) handleConfirmationOfRemoveContainers() {
