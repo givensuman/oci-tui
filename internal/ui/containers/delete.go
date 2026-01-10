@@ -6,8 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/colors"
-	"github.com/givensuman/containertui/internal/context"
-	"github.com/moby/moby/api/types/container"
 )
 
 type buttonOption int
@@ -30,11 +28,11 @@ func (bo buttonOption) String() string {
 
 type DeleteConfirmation struct {
 	style               lipgloss.Style
-	item                *ContainerItem
+	requestedContainers []*ContainerItem
 	hoveredButtonOption buttonOption
 }
 
-func newDeleteConfirmation(item *ContainerItem) DeleteConfirmation {
+func newDeleteConfirmation(requestedContainers ...*ContainerItem) DeleteConfirmation {
 	style := lipgloss.NewStyle().
 		Padding(1).
 		Border(lipgloss.RoundedBorder(), true, true).
@@ -42,17 +40,9 @@ func newDeleteConfirmation(item *ContainerItem) DeleteConfirmation {
 
 	return DeleteConfirmation{
 		style:               style,
-		item:                item,
+		requestedContainers: requestedContainers,
 		hoveredButtonOption: decline,
 	}
-}
-
-func (dc *DeleteConfirmation) Delete() {
-	if dc.item.State == container.StateRunning {
-		context.GetClient().StopContainer(dc.item.ID)
-	}
-
-	context.GetClient().RemoveContainer(dc.item.ID)
 }
 
 func (dc DeleteConfirmation) Init() tea.Cmd {
@@ -60,7 +50,6 @@ func (dc DeleteConfirmation) Init() tea.Cmd {
 }
 
 func (dc DeleteConfirmation) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -68,6 +57,7 @@ func (dc DeleteConfirmation) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case tea.KeyEscape.String(), tea.KeyEsc.String():
 			cmds = append(cmds, func() tea.Msg { return MessageCloseOverlay{} })
+
 		case tea.KeyTab.String():
 			switch dc.hoveredButtonOption {
 			case confirm:
@@ -75,10 +65,10 @@ func (dc DeleteConfirmation) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case decline:
 				dc.hoveredButtonOption = confirm
 			}
+
 		case tea.KeyEnter.String():
 			if dc.hoveredButtonOption == confirm {
-				dc.Delete()
-				cmds = append(cmds, func() tea.Msg { return MessageConfirmDelete{dc.item} })
+				cmds = append(cmds, func() tea.Msg { return MessageConfirmDelete{} })
 			}
 
 			cmds = append(cmds, func() tea.Msg { return MessageCloseOverlay{} })
@@ -89,8 +79,16 @@ func (dc DeleteConfirmation) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (dc DeleteConfirmation) View() string {
-	hoveredButtonStyle := lipgloss.NewStyle()
-	defaultButtonStyle := lipgloss.NewStyle()
+	hoveredButtonStyle := lipgloss.NewStyle().
+		Background(colors.Primary()).
+		Bold(true).
+		Foreground(colors.Black()).
+		Padding(0, 1)
+
+	defaultButtonStyle := lipgloss.NewStyle().
+		Background(colors.Gray()).
+		Foreground(colors.White()).
+		Padding(0, 1)
 
 	confirmButton := confirm.String()
 	declineButton := decline.String()
@@ -103,11 +101,24 @@ func (dc DeleteConfirmation) View() string {
 		declineButton = hoveredButtonStyle.Render(declineButton)
 	}
 
-	buttons := lipgloss.JoinHorizontal(lipgloss.Center, declineButton, confirmButton)
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		declineButton,
+		"   ",
+		confirmButton,
+	)
+
+	var message string
+	if len(dc.requestedContainers) == 1 {
+		message = fmt.Sprintf("Are you sure you want to delete %s?", dc.requestedContainers[0].Name)
+	} else {
+		message = fmt.Sprintf("Are you sure you want to delete the %d selected containers?", len(dc.requestedContainers))
+	}
 
 	return dc.style.Render(lipgloss.JoinVertical(
 		lipgloss.Center,
-		fmt.Sprintf("Are you sure you want to delete %s?", dc.item.Name),
+		message,
+		"   ",
 		buttons,
 	))
 }

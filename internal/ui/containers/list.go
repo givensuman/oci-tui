@@ -157,12 +157,8 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, cl.keybindings.stopContainer):
 			cl.handleStopContainers()
 		case key.Matches(msg, cl.keybindings.removeContainer):
-			item, ok := cl.list.SelectedItem().(ContainerItem)
-			if ok {
-				cmds = append(cmds, func() tea.Msg {
-					return MessageOpenDeleteConfirmationDialog{&item}
-				})
-			}
+			cmd = cl.handleRemoveContainers()
+			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.toggleSelection):
 			cl.handleToggleSelection()
 		case key.Matches(msg, cl.keybindings.toggleSelectionOfAll):

@@ -74,7 +74,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case MessageCloseOverlay:
 		m.sessionState = viewMain
 	case MessageOpenDeleteConfirmationDialog:
-		m.foreground = newDeleteConfirmation(msg.item)
+		m.foreground = newDeleteConfirmation(msg.requestedContainersToDelete...)
 		m.sessionState = viewOverlay
 	}
 

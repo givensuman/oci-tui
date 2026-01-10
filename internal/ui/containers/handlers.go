@@ -1,6 +1,7 @@
 package containers
 
 import (
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/moby/moby/api/types/container"
 )
@@ -109,6 +110,33 @@ func (cl *ContainerList) handleStopContainers() {
 			cl.list.SetItem(cl.list.Index(), selectedItem)
 		}
 	}
+}
+
+func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
+	if len(cl.selectedContainers.selections) > 0 {
+		selectedContainerIndices := cl.getSelectedContainerIndices()
+
+		var requestedContainersToDelete []*ContainerItem
+		items := cl.list.Items()
+
+		for _, index := range selectedContainerIndices {
+			requestedContainer := items[index].(ContainerItem)
+			requestedContainersToDelete = append(requestedContainersToDelete, &requestedContainer)
+		}
+
+		return func() tea.Msg {
+			return MessageOpenDeleteConfirmationDialog{requestedContainersToDelete}
+		}
+	} else {
+		item, ok := cl.list.SelectedItem().(ContainerItem)
+		if ok {
+			return func() tea.Msg {
+				return MessageOpenDeleteConfirmationDialog{[]*ContainerItem{&item}}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (cl *ContainerList) handleConfirmationOfRemoveContainers() {

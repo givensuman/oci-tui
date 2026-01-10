@@ -7,11 +7,9 @@ type MessageCloseOverlay struct{}
 // MessageOpenDeleteConfirmationDialog indicates the user
 // has requested to delete an item in the ContainerList
 type MessageOpenDeleteConfirmationDialog struct {
-	item *ContainerItem
+	requestedContainersToDelete []*ContainerItem
 }
 
 // MessageConfirmDelete indicates the user confirmed
 // they wish to delete an item in the ContainerList
-type MessageConfirmDelete struct {
-	item *ContainerItem
-}
+type MessageConfirmDelete struct{}
