@@ -4,7 +4,6 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/givensuman/containertui/internal/context"
 	"github.com/moby/moby/api/types/container"
 )
 
@@ -26,92 +25,56 @@ func (cl *ContainerList) getSelectedContainerIndices() []int {
 	return selectedContainerIndices
 }
 
-func (cl *ContainerList) handlePauseContainers() {
+func (cl *ContainerList) handlePauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		selectedContainerIndices := cl.getSelectedContainerIndices()
-
-		context.GetClient().PauseContainers(selectedContainerIDs)
-		items := cl.list.Items()
-		for _, index := range selectedContainerIndices {
-			item := items[index].(ContainerItem)
-			item.State = container.StatePaused
-			cl.list.SetItem(index, item)
-		}
+		return PerformContainerOperation("pause", selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			context.GetClient().PauseContainer(selectedItem.ID)
-			selectedItem.State = container.StatePaused
-			cl.list.SetItem(cl.list.Index(), selectedItem)
+			return PerformContainerOperation("pause", []string{selectedItem.ID})
 		}
 	}
+	return nil
 }
 
-func (cl *ContainerList) handleUnpauseContainers() {
+func (cl *ContainerList) handleUnpauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		selectedContainerIndices := cl.getSelectedContainerIndices()
-
-		context.GetClient().UnpauseContainers(selectedContainerIDs)
-		items := cl.list.Items()
-		for _, index := range selectedContainerIndices {
-			item := items[index].(ContainerItem)
-			item.State = container.StateRunning
-			cl.list.SetItem(index, item)
-		}
+		return PerformContainerOperation("unpause", selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			context.GetClient().UnpauseContainer(selectedItem.ID)
-			selectedItem.State = container.StateRunning
-			cl.list.SetItem(cl.list.Index(), selectedItem)
+			return PerformContainerOperation("unpause", []string{selectedItem.ID})
 		}
 	}
+	return nil
 }
 
-func (cl *ContainerList) handleStartContainers() {
+func (cl *ContainerList) handleStartContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		selectedContainerIndices := cl.getSelectedContainerIndices()
-
-		context.GetClient().StartContainers(selectedContainerIDs)
-		items := cl.list.Items()
-		for _, index := range selectedContainerIndices {
-			item := items[index].(ContainerItem)
-			item.State = container.StateRunning
-			cl.list.SetItem(index, item)
-		}
+		return PerformContainerOperation("start", selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			context.GetClient().StartContainer(selectedItem.ID)
-			selectedItem.State = container.StateRunning
-			cl.list.SetItem(cl.list.Index(), selectedItem)
+			return PerformContainerOperation("start", []string{selectedItem.ID})
 		}
 	}
+	return nil
 }
 
-func (cl *ContainerList) handleStopContainers() {
+func (cl *ContainerList) handleStopContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		selectedContainerIndices := cl.getSelectedContainerIndices()
-
-		context.GetClient().StopContainers(selectedContainerIDs)
-		items := cl.list.Items()
-		for _, index := range selectedContainerIndices {
-			item := items[index].(ContainerItem)
-			item.State = container.StateExited
-			cl.list.SetItem(index, item)
-		}
+		return PerformContainerOperation("stop", selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			context.GetClient().StopContainer(selectedItem.ID)
-			selectedItem.State = container.StateExited
-			cl.list.SetItem(cl.list.Index(), selectedItem)
+			return PerformContainerOperation("stop", []string{selectedItem.ID})
 		}
 	}
+	return nil
 }
 
 func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
@@ -156,22 +119,17 @@ func (cl *ContainerList) handleShowLogs() tea.Cmd {
 	return OpenContainerLogs(&item)
 }
 
-func (cl *ContainerList) handleConfirmationOfRemoveContainers() {
+func (cl *ContainerList) handleConfirmationOfRemoveContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		selectedContainerIndices := cl.getSelectedContainerIndices()
-
-		context.GetClient().RemoveContainers(selectedContainerIDs)
-		for _, index := range selectedContainerIndices {
-			cl.list.RemoveItem(index)
-		}
+		return PerformContainerOperation("remove", selectedContainerIDs)
 	} else {
 		item, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			context.GetClient().RemoveContainer(item.ID)
-			cl.list.RemoveItem(cl.list.Index())
+			return PerformContainerOperation("remove", []string{item.ID})
 		}
 	}
+	return nil
 }
 
 func (cl *ContainerList) handleToggleSelection() {
@@ -225,6 +183,59 @@ func (cl *ContainerList) handleToggleSelectionOfAll() {
 				item.isSelected = true
 				cl.list.SetItem(index, item)
 				cl.selectedContainers.selectContainerInList(item.ID, index)
+			}
+		}
+	}
+}
+
+func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOperationResult) {
+	if msg.Error != nil {
+		// For now, ignore errors to prevent UI freeze; TODO: show error in UI
+		return
+	}
+
+	if msg.Operation == "remove" {
+		// For remove, remove items from list
+		items := cl.list.Items()
+		// Collect indices to remove, in reverse order to avoid index shifting
+		var indicesToRemove []int
+		for i, item := range items {
+			if c, ok := item.(ContainerItem); ok {
+				for _, id := range msg.IDs {
+					if c.ID == id {
+						indicesToRemove = append([]int{i}, indicesToRemove...) // prepend to reverse
+						break
+					}
+				}
+			}
+		}
+		for _, index := range indicesToRemove {
+			cl.list.RemoveItem(index)
+		}
+		return
+	}
+
+	var newState container.ContainerState
+	switch msg.Operation {
+	case "pause":
+		newState = container.StatePaused
+	case "unpause", "start":
+		newState = container.StateRunning
+	case "stop":
+		newState = container.StateExited
+	default:
+		return
+	}
+
+	items := cl.list.Items()
+	for i, item := range items {
+		if c, ok := item.(ContainerItem); ok {
+			for _, id := range msg.IDs {
+				if c.ID == id {
+					c.State = newState
+					cl.list.SetItem(i, c)
+					break
+				}
 			}
 		}
 	}

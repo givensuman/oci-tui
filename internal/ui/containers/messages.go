@@ -2,6 +2,7 @@ package containers
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/givensuman/containertui/internal/context"
 )
 
 // MessageCloseOverlay indicates the overlay should display
@@ -35,3 +36,30 @@ type MessageOpenDeleteConfirmationDialog struct {
 // MessageConfirmDelete indicates the user confirmed
 // they wish to delete an item in the ContainerList
 type MessageConfirmDelete struct{}
+
+// MessageContainerOperationResult indicates the result of a container operation
+type MessageContainerOperationResult struct {
+	Operation string // "pause", "unpause", "start", "stop"
+	IDs       []string
+	Error     error
+}
+
+// PerformContainerOperation performs the specified operation on the given container IDs asynchronously
+func PerformContainerOperation(operation string, ids []string) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		switch operation {
+		case "pause":
+			err = context.GetClient().PauseContainers(ids)
+		case "unpause":
+			err = context.GetClient().UnpauseContainers(ids)
+		case "start":
+			err = context.GetClient().StartContainers(ids)
+		case "stop":
+			err = context.GetClient().StopContainers(ids)
+		case "remove":
+			err = context.GetClient().RemoveContainers(ids)
+		}
+		return MessageContainerOperationResult{Operation: operation, IDs: ids, Error: err}
+	}
+}

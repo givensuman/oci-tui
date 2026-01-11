@@ -86,7 +86,7 @@ type ContainerList struct {
 }
 
 var (
-	_ tea.Model            = (*ContainerList)(nil)
+	_ tea.Model             = (*ContainerList)(nil)
 	_ shared.ComponentModel = (*ContainerList)(nil)
 )
 
@@ -159,7 +159,11 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cl.list.SetHeight(msg.Height - heightOffset)
 
 	case MessageConfirmDelete:
-		cl.handleConfirmationOfRemoveContainers()
+		cmd = cl.handleConfirmationOfRemoveContainers()
+		cmds = append(cmds, cmd)
+
+	case MessageContainerOperationResult:
+		cl.handleContainerOperationResult(msg)
 
 	case tea.KeyMsg:
 		if cl.list.FilterState() == list.Filtering {
@@ -168,13 +172,17 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch {
 		case key.Matches(msg, cl.keybindings.pauseContainer):
-			cl.handlePauseContainers()
+			cmd = cl.handlePauseContainers()
+			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.unpauseContainer):
-			cl.handleUnpauseContainers()
+			cmd = cl.handleUnpauseContainers()
+			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.startContainer):
-			cl.handleStartContainers()
+			cmd = cl.handleStartContainers()
+			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.stopContainer):
-			cl.handleStopContainers()
+			cmd = cl.handleStopContainers()
+			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.removeContainer):
 			cmd = cl.handleRemoveContainers()
 			cmds = append(cmds, cmd)
