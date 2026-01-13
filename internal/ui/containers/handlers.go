@@ -2,8 +2,8 @@ package containers
 
 import (
 	"log"
+	"slices"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/moby/moby/api/types/container"
 )
@@ -29,29 +29,46 @@ func (cl *ContainerList) getSelectedContainerIndices() []int {
 func (cl *ContainerList) setWorkingState(ids []string, working bool) {
 	items := cl.list.Items()
 	for i, item := range items {
-		if c, ok := item.(ContainerItem); ok {
-			for _, id := range ids {
-				if c.ID == id {
-					c.isWorking = working
-					if working {
-						c.spinner = spinner.New()
-					}
-					cl.list.SetItem(i, c)
-					break
-				}
+		if c, ok := item.(ContainerItem); ok && slices.Contains(ids, c.ID) {
+			c.isWorking = working
+			if working {
+				c.spinner = newSpinner()
 			}
+			cl.list.SetItem(i, c)
 		}
 	}
+}
+
+func (cl *ContainerList) anySelectedWorking() bool {
+	for id := range cl.selectedContainers.selections {
+		if item := cl.findItemByID(id); item != nil && item.isWorking {
+			return true
+		}
+	}
+	return false
+}
+
+func (cl *ContainerList) findItemByID(id string) *ContainerItem {
+	items := cl.list.Items()
+	for _, item := range items {
+		if c, ok := item.(ContainerItem); ok && c.ID == id {
+			return &c
+		}
+	}
+	return nil
 }
 
 func (cl *ContainerList) handlePauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
+		if cl.anySelectedWorking() {
+			return nil
+		}
 		cl.setWorkingState(selectedContainerIDs, true)
 		return PerformContainerOperation(Pause, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
-		if ok {
+		if ok && !selectedItem.isWorking {
 			cl.setWorkingState([]string{selectedItem.ID}, true)
 			return PerformContainerOperation(Pause, []string{selectedItem.ID})
 		}
@@ -62,11 +79,14 @@ func (cl *ContainerList) handlePauseContainers() tea.Cmd {
 func (cl *ContainerList) handleUnpauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
+		if cl.anySelectedWorking() {
+			return nil
+		}
 		cl.setWorkingState(selectedContainerIDs, true)
 		return PerformContainerOperation(Unpause, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
-		if ok {
+		if ok && !selectedItem.isWorking {
 			cl.setWorkingState([]string{selectedItem.ID}, true)
 			return PerformContainerOperation(Unpause, []string{selectedItem.ID})
 		}
@@ -77,11 +97,14 @@ func (cl *ContainerList) handleUnpauseContainers() tea.Cmd {
 func (cl *ContainerList) handleStartContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
+		if cl.anySelectedWorking() {
+			return nil
+		}
 		cl.setWorkingState(selectedContainerIDs, true)
 		return PerformContainerOperation(Start, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
-		if ok {
+		if ok && !selectedItem.isWorking {
 			cl.setWorkingState([]string{selectedItem.ID}, true)
 			return PerformContainerOperation(Start, []string{selectedItem.ID})
 		}
@@ -93,11 +116,14 @@ func (cl *ContainerList) handleStartContainers() tea.Cmd {
 func (cl *ContainerList) handleStopContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
+		if cl.anySelectedWorking() {
+			return nil
+		}
 		cl.setWorkingState(selectedContainerIDs, true)
 		return PerformContainerOperation(Stop, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
-		if ok {
+		if ok && !selectedItem.isWorking {
 			cl.setWorkingState([]string{selectedItem.ID}, true)
 			return PerformContainerOperation(Stop, []string{selectedItem.ID})
 		}
@@ -108,6 +134,9 @@ func (cl *ContainerList) handleStopContainers() tea.Cmd {
 
 func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
+		if cl.anySelectedWorking() {
+			return nil
+		}
 		selectedContainerIndices := cl.getSelectedContainerIndices()
 
 		var requestedContainersToDelete []*ContainerItem
@@ -123,7 +152,7 @@ func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
 		}
 	} else {
 		item, ok := cl.list.SelectedItem().(ContainerItem)
-		if ok {
+		if ok && !item.isWorking {
 			return func() tea.Msg {
 				return MessageOpenDeleteConfirmationDialog{[]*ContainerItem{&item}}
 			}
@@ -135,7 +164,7 @@ func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
 
 func (cl *ContainerList) handleShowLogs() tea.Cmd {
 	item, ok := cl.list.SelectedItem().(ContainerItem)
-	if !ok {
+	if !ok || item.isWorking {
 		log.Print()
 		return nil
 	}
@@ -168,7 +197,7 @@ func (cl *ContainerList) handleConfirmationOfRemoveContainers() tea.Cmd {
 func (cl *ContainerList) handleToggleSelection() {
 	index := cl.list.Index()
 	selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
-	if ok {
+	if ok && !selectedItem.isWorking {
 		isSelected := selectedItem.isSelected
 
 		if isSelected {
@@ -183,19 +212,19 @@ func (cl *ContainerList) handleToggleSelection() {
 }
 
 func (cl *ContainerList) handleToggleSelectionOfAll() {
-	allAlreadySelected := true
+	allNonWorkingAlreadySelected := true
 	items := cl.list.Items()
 
 	for _, item := range items {
-		if c, ok := item.(ContainerItem); ok {
+		if c, ok := item.(ContainerItem); ok && !c.isWorking {
 			if _, selected := cl.selectedContainers.selections[c.ID]; !selected {
-				allAlreadySelected = false
+				allNonWorkingAlreadySelected = false
 				break
 			}
 		}
 	}
 
-	if allAlreadySelected {
+	if allNonWorkingAlreadySelected {
 		// Unselect all items
 		cl.selectedContainers = newSelectedContainers()
 
@@ -207,12 +236,12 @@ func (cl *ContainerList) handleToggleSelectionOfAll() {
 			}
 		}
 	} else {
-		// Select all items
+		// Select all non-working items
 		cl.selectedContainers = newSelectedContainers()
 
 		for index, item := range cl.list.Items() {
 			item, ok := item.(ContainerItem)
-			if ok {
+			if ok && !item.isWorking {
 				item.isSelected = true
 				cl.list.SetItem(index, item)
 				cl.selectedContainers.selectContainerInList(item.ID, index)
@@ -222,7 +251,6 @@ func (cl *ContainerList) handleToggleSelectionOfAll() {
 }
 
 func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOperationResult) {
-	// Always set working state to false, even on error
 	cl.setWorkingState(msg.IDs, false)
 
 	if msg.Error != nil {

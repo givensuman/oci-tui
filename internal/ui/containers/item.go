@@ -102,15 +102,17 @@ func newDefaultDelegate() list.DefaultDelegate {
 
 	d.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
 		if _, ok := msg.(spinner.TickMsg); ok {
+			var cmds []tea.Cmd
 			items := m.Items()
 			for i, item := range items {
 				if c, ok := item.(ContainerItem); ok && c.isWorking {
 					var cmd tea.Cmd
 					c.spinner, cmd = c.spinner.Update(msg)
 					m.SetItem(i, c)
-					return cmd
+					cmds = append(cmds, cmd)
 				}
 			}
+			return tea.Batch(cmds...)
 		}
 		return nil
 	}

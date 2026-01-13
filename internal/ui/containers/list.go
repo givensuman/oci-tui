@@ -3,6 +3,7 @@ package containers
 import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/context"
@@ -202,10 +203,12 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cl.list = listModel
 	cmds = append(cmds, cmd)
 
-	items := cl.list.Items()
-	for _, item := range items {
-		if c, ok := item.(ContainerItem); ok && c.isWorking {
-			cmds = append(cmds, c.spinner.Tick)
+	if _, ok := msg.(spinner.TickMsg); !ok {
+		items := cl.list.Items()
+		for _, item := range items {
+			if c, ok := item.(ContainerItem); ok && c.isWorking {
+				cmds = append(cmds, c.spinner.Tick)
+			}
 		}
 	}
 
