@@ -1,0 +1,22 @@
+builds:
+  - env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+nfpms:
+  - formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    recommends:
+      - docker
+      - podman
+
+brews:
+  - name: containertui
+    repository:
+      owner: givensuman
+      name: containertui
+    homepage: "https://github.com/givensuman/containertui"
+    description: "a terminal ui for managing container lifecycles"
