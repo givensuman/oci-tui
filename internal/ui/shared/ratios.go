@@ -17,7 +17,8 @@ func AdjustedHeight(height int, ratio WindowRatio) int {
 	return int(math.Floor(heightFloat * ratio.height))
 }
 
-var RatioContainerLogs WindowRatio = WindowRatio{
-	width:  0.1,
-	height: 0.1,
-}
+var (
+	RatioFullscreen   WindowRatio = WindowRatio{1.0, 1.0}
+	RatioModal        WindowRatio = WindowRatio{0.4, 0.2}
+	RatioLargeOverlay WindowRatio = WindowRatio{0.8, 0.8}
+)

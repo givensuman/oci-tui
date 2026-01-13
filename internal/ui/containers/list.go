@@ -143,6 +143,13 @@ func newContainerList() ContainerList {
 func (cl *ContainerList) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 	cl.WindowWidth = msg.Width
 	cl.WindowHeight = msg.Height
+
+	lm := shared.NewLayoutManager(msg.Width, msg.Height)
+	dims := lm.CalculateFullscreen(cl.style)
+
+	cl.style = cl.style.Width(dims.Width).Height(dims.Height)
+	cl.list.SetWidth(dims.ContentWidth)
+	cl.list.SetHeight(dims.ContentHeight)
 }
 
 func (cl ContainerList) Init() tea.Cmd {
@@ -154,13 +161,6 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		cl.style = cl.style.Width(msg.Width).Height(msg.Height)
-		widthOffset, heightOffset := cl.style.GetFrameSize()
-
-		cl.list.SetWidth(msg.Width - widthOffset)
-		cl.list.SetHeight(msg.Height - heightOffset)
-
 	case MessageConfirmDelete:
 		cmd = cl.handleConfirmationOfRemoveContainers()
 		cmds = append(cmds, cmd)
@@ -171,6 +171,11 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if cl.list.FilterState() == list.Filtering {
 			break
+		}
+
+		switch msg.String() {
+		case "q":
+			return cl, tea.Quit
 		}
 
 		switch {

@@ -45,6 +45,7 @@ type MessageContainerOperationResult struct {
 }
 
 type Operation int
+
 const (
 	Pause Operation = iota
 	Unpause

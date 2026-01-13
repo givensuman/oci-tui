@@ -40,7 +40,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c", "ctrl+d":
+		case "ctrl+c", "ctrl+d":
 			return m, tea.Quit
 		}
 	}

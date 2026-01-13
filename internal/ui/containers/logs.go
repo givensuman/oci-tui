@@ -25,8 +25,7 @@ type ContainerLogs struct {
 	viewport    viewport.Model
 	isFollowing bool
 	logBuffer   strings.Builder
-
-	style lipgloss.Style
+	style       lipgloss.Style
 }
 
 func waitForLogs(reader io.Reader) tea.Cmd {
@@ -41,7 +40,6 @@ func waitForLogs(reader io.Reader) tea.Cmd {
 }
 
 func newContainerLogs(container *ContainerItem) *ContainerLogs {
-	// 1. Get initial size from context to avoid the "Initializing" hang
 	w, h := context.GetWindowSize()
 
 	cl := &ContainerLogs{
@@ -64,14 +62,12 @@ func (cl *ContainerLogs) setDimensions(w, h int) {
 	cl.WindowWidth = w
 	cl.WindowHeight = h
 
-	// Define log window size (80% width, 70% height)
-	width := int(float64(w) * 0.8)
-	height := int(float64(h) * 0.7)
+	lm := shared.NewLayoutManager(w, h)
+	dims := lm.CalculateLargeOverlay(cl.style)
 
-	cl.style = cl.style.Width(width).Height(height)
-
-	cl.viewport.Width = width - cl.style.GetHorizontalFrameSize()
-	cl.viewport.Height = height - cl.style.GetVerticalFrameSize()
+	cl.style = cl.style.Width(dims.Width).Height(dims.Height)
+	cl.viewport.Width = dims.ContentWidth
+	cl.viewport.Height = dims.ContentHeight
 }
 
 func (cl *ContainerLogs) Init() tea.Cmd {
@@ -115,14 +111,13 @@ func (cl *ContainerLogs) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (cl *ContainerLogs) View() string {
-	// Status bar to show if Tailing is on
+	// TODO: Improve this! Better bar design, scroll handling, etc.
 	followStatus := " [Tail: ON] "
 	if !cl.isFollowing {
 		followStatus = " [Tail: OFF] "
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
-		cl.viewport.View(),
-		lipgloss.NewStyle().Foreground(colors.Primary()).Render(followStatus),
+		cl.style.Render(cl.viewport.View(), lipgloss.NewStyle().Foreground(colors.Primary()).Render(followStatus)),
 	)
 }

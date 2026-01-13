@@ -36,7 +36,7 @@ type DeleteConfirmation struct {
 }
 
 var (
-	_ tea.Model            = (*DeleteConfirmation)(nil)
+	_ tea.Model             = (*DeleteConfirmation)(nil)
 	_ shared.ComponentModel = (*DeleteConfirmation)(nil)
 )
 
@@ -47,8 +47,12 @@ func newDeleteConfirmation(requestedContainers ...*ContainerItem) DeleteConfirma
 		Padding(1).
 		Border(lipgloss.RoundedBorder(), true, true).
 		BorderForeground(colors.Primary()).
-		MaxHeight(height / 2).
-		MaxWidth(width / 2)
+		Align(lipgloss.Center)
+
+	lm := shared.NewLayoutManager(width, height)
+	dims := lm.CalculateModal(style)
+
+	style = style.Width(dims.Width).Height(dims.Height)
 
 	return DeleteConfirmation{
 		style:               style,
@@ -60,6 +64,11 @@ func newDeleteConfirmation(requestedContainers ...*ContainerItem) DeleteConfirma
 func (dc *DeleteConfirmation) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 	dc.WindowWidth = msg.Width
 	dc.WindowHeight = msg.Height
+
+	lm := shared.NewLayoutManager(msg.Width, msg.Height)
+	dims := lm.CalculateModal(dc.style)
+
+	dc.style = dc.style.Width(dims.Width).Height(dims.Height)
 }
 
 func (dc DeleteConfirmation) Init() tea.Cmd {
@@ -152,7 +161,7 @@ func (dc DeleteConfirmation) View() string {
 	return dc.style.Render(lipgloss.JoinVertical(
 		lipgloss.Center,
 		message,
-		"   ",
+		"",
 		buttons,
 	))
 }

@@ -23,7 +23,7 @@ type Model struct {
 }
 
 var (
-	_ tea.Model            = (*Model)(nil)
+	_ tea.Model             = (*Model)(nil)
 	_ shared.ComponentModel = (*Model)(nil)
 )
 
@@ -49,6 +49,23 @@ func New() Model {
 func (m *Model) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 	m.WindowWidth = msg.Width
 	m.WindowHeight = msg.Height
+
+	switch m.sessionState {
+	case viewMain:
+		if cl, ok := m.background.(ContainerList); ok {
+			cl.UpdateWindowDimensions(msg)
+			m.background = cl
+		}
+	case viewOverlay:
+		switch fg := m.foreground.(type) {
+		case *ContainerLogs:
+			fg.setDimensions(msg.Width, msg.Height)
+			m.foreground = fg
+		case DeleteConfirmation:
+			fg.UpdateWindowDimensions(msg)
+			m.foreground = fg
+		}
+	}
 }
 
 func (m Model) Init() tea.Cmd {
