@@ -4,7 +4,10 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/givensuman/containertui/internal/client"
 	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
@@ -14,6 +17,8 @@ import (
 type ContainerItem struct {
 	client.Container
 	isSelected bool
+	isWorking  bool
+	spinner    spinner.Model
 }
 
 var (
@@ -95,6 +100,10 @@ func newDefaultDelegate() list.DefaultDelegate {
 		Foreground(colors.Primary()).
 		Bold(true)
 
+	d.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
+		return nil
+	}
+
 	return d
 }
 
@@ -143,5 +152,5 @@ func (ci ContainerItem) Title() string {
 }
 
 func (ci ContainerItem) Description() string {
-	return fmt.Sprintf("   %s - %s", ci.Image, ci.State)
+	return fmt.Sprintf("   %s", ansi.Truncate(ci.Image, 24, "..."))
 }

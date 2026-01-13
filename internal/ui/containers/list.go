@@ -196,7 +196,8 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	cl.list, cmd = cl.list.Update(msg)
+	listModel, cmd := cl.list.Update(msg)
+	cl.list = listModel
 	cmds = append(cmds, cmd)
 
 	return cl, tea.Batch(cmds...)

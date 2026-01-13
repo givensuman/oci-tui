@@ -39,12 +39,12 @@ type MessageConfirmDelete struct{}
 
 // MessageContainerOperationResult indicates the result of a container operation
 type MessageContainerOperationResult struct {
-	Operation string // "pause", "unpause", "start", "stop"
+	Operation Operation
 	IDs       []string
 	Error     error
 }
 
-type Operation int // TODO: Better implementation
+type Operation int
 const (
 	Pause Operation = iota
 	Unpause
@@ -54,19 +54,19 @@ const (
 )
 
 // PerformContainerOperation performs the specified operation on the given container IDs asynchronously
-func PerformContainerOperation(operation string, ids []string) tea.Cmd {
+func PerformContainerOperation(operation Operation, ids []string) tea.Cmd {
 	return func() tea.Msg {
 		var err error
 		switch operation {
-		case "pause":
+		case Pause:
 			err = context.GetClient().PauseContainers(ids)
-		case "unpause":
+		case Unpause:
 			err = context.GetClient().UnpauseContainers(ids)
-		case "start":
+		case Start:
 			err = context.GetClient().StartContainers(ids)
-		case "stop":
+		case Stop:
 			err = context.GetClient().StopContainers(ids)
-		case "remove":
+		case Remove:
 			err = context.GetClient().RemoveContainers(ids)
 		}
 		return MessageContainerOperationResult{Operation: operation, IDs: ids, Error: err}

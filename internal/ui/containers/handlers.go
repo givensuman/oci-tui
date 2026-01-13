@@ -28,11 +28,11 @@ func (cl *ContainerList) getSelectedContainerIndices() []int {
 func (cl *ContainerList) handlePauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		return PerformContainerOperation("pause", selectedContainerIDs)
+		return PerformContainerOperation(Pause, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			return PerformContainerOperation("pause", []string{selectedItem.ID})
+			return PerformContainerOperation(Pause, []string{selectedItem.ID})
 		}
 	}
 	return nil
@@ -41,11 +41,11 @@ func (cl *ContainerList) handlePauseContainers() tea.Cmd {
 func (cl *ContainerList) handleUnpauseContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		return PerformContainerOperation("unpause", selectedContainerIDs)
+		return PerformContainerOperation(Unpause, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			return PerformContainerOperation("unpause", []string{selectedItem.ID})
+			return PerformContainerOperation(Unpause, []string{selectedItem.ID})
 		}
 	}
 	return nil
@@ -54,26 +54,28 @@ func (cl *ContainerList) handleUnpauseContainers() tea.Cmd {
 func (cl *ContainerList) handleStartContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		return PerformContainerOperation("start", selectedContainerIDs)
+		return PerformContainerOperation(Start, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			return PerformContainerOperation("start", []string{selectedItem.ID})
+			return PerformContainerOperation(Start, []string{selectedItem.ID})
 		}
 	}
+
 	return nil
 }
 
 func (cl *ContainerList) handleStopContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		return PerformContainerOperation("stop", selectedContainerIDs)
+		return PerformContainerOperation(Stop, selectedContainerIDs)
 	} else {
 		selectedItem, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			return PerformContainerOperation("stop", []string{selectedItem.ID})
+			return PerformContainerOperation(Stop, []string{selectedItem.ID})
 		}
 	}
+
 	return nil
 }
 
@@ -111,6 +113,7 @@ func (cl *ContainerList) handleShowLogs() tea.Cmd {
 		return nil
 	}
 
+	// TODO: Replace with notification
 	if item.State != container.StateRunning {
 		log.Printf("%s is not running...", item.Name)
 		return nil
@@ -122,13 +125,14 @@ func (cl *ContainerList) handleShowLogs() tea.Cmd {
 func (cl *ContainerList) handleConfirmationOfRemoveContainers() tea.Cmd {
 	if len(cl.selectedContainers.selections) > 0 {
 		selectedContainerIDs := cl.getSelectedContainerIDs()
-		return PerformContainerOperation("remove", selectedContainerIDs)
+		return PerformContainerOperation(Remove, selectedContainerIDs)
 	} else {
 		item, ok := cl.list.SelectedItem().(ContainerItem)
 		if ok {
-			return PerformContainerOperation("remove", []string{item.ID})
+			return PerformContainerOperation(Remove, []string{item.ID})
 		}
 	}
+
 	return nil
 }
 
@@ -190,20 +194,19 @@ func (cl *ContainerList) handleToggleSelectionOfAll() {
 
 func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOperationResult) {
 	if msg.Error != nil {
-		// For now, ignore errors to prevent UI freeze; TODO: show error in UI
+		// TODO: Replace with notification
 		return
 	}
 
-	if msg.Operation == "remove" {
-		// For remove, remove items from list
+	if msg.Operation == Remove {
 		items := cl.list.Items()
-		// Collect indices to remove, in reverse order to avoid index shifting
+
 		var indicesToRemove []int
 		for i, item := range items {
 			if c, ok := item.(ContainerItem); ok {
 				for _, id := range msg.IDs {
 					if c.ID == id {
-						indicesToRemove = append([]int{i}, indicesToRemove...) // prepend to reverse
+						indicesToRemove = append([]int{i}, indicesToRemove...)
 						break
 					}
 				}
@@ -212,16 +215,17 @@ func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOper
 		for _, index := range indicesToRemove {
 			cl.list.RemoveItem(index)
 		}
+
 		return
 	}
 
 	var newState container.ContainerState
 	switch msg.Operation {
-	case "pause":
+	case Pause:
 		newState = container.StatePaused
-	case "unpause", "start":
+	case Unpause, Start:
 		newState = container.StateRunning
-	case "stop":
+	case Stop:
 		newState = container.StateExited
 	default:
 		return
