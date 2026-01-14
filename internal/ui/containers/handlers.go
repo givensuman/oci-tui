@@ -2,6 +2,7 @@ package containers
 
 import (
 	"log"
+	"os/exec"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -176,6 +177,32 @@ func (cl *ContainerList) handleShowLogs() tea.Cmd {
 	}
 
 	return OpenContainerLogs(&item)
+}
+
+func (cl *ContainerList) handleExecShell() tea.Cmd {
+	item, ok := cl.list.SelectedItem().(ContainerItem)
+	if !ok || item.isWorking {
+		return nil
+	}
+
+	if item.State != container.StateRunning {
+		log.Printf("%s is not running...", item.Name)
+		return nil
+	}
+
+	// We'll use tea.ExecProcess to run `docker exec -it <id> /bin/sh`
+	// This suspends the Bubbletea UI and lets the subprocess take over TTY
+	// Note: We are using "sh" as a generic shell, but some containers might only have "bash" or "ash".
+	// Ideally we could probe or let user choose, but "sh" is safest default.
+	c := exec.Command("docker", "exec", "-it", item.ID, "/bin/sh")
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		if err != nil {
+			log.Printf("Exec failed: %v", err)
+		}
+		// Refresh container state after coming back, just in case
+		// Note: We might want a specific message type for this
+		return nil
+	})
 }
 
 func (cl *ContainerList) handleConfirmationOfRemoveContainers() tea.Cmd {

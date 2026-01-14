@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/givensuman/containertui/internal/client"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/shared"
 )
@@ -17,6 +18,7 @@ type keybindings struct {
 	stopContainer        key.Binding
 	removeContainer      key.Binding
 	showLogs             key.Binding
+	execShell            key.Binding
 	toggleSelection      key.Binding
 	toggleSelectionOfAll key.Binding
 }
@@ -46,6 +48,10 @@ func newKeybindings() *keybindings {
 		showLogs: key.NewBinding(
 			key.WithKeys("l"),
 			key.WithHelp("l", "show container logs"),
+		),
+		execShell: key.NewBinding(
+			key.WithKeys("x"),
+			key.WithHelp("x", "exec shell"),
 		),
 		toggleSelection: key.NewBinding(
 			key.WithKeys(tea.KeySpace.String()),
@@ -92,7 +98,10 @@ var (
 )
 
 func newContainerList() ContainerList {
-	containers := context.GetClient().GetContainers()
+	containers, err := context.GetClient().GetContainers()
+	if err != nil {
+		containers = []client.Container{}
+	}
 	containerItems := make([]list.Item, 0, len(containers))
 	for _, container := range containers {
 		containerItems = append(
@@ -127,6 +136,7 @@ func newContainerList() ContainerList {
 			keybindings.stopContainer,
 			keybindings.removeContainer,
 			keybindings.showLogs,
+			keybindings.execShell,
 			keybindings.toggleSelection,
 			keybindings.toggleSelectionOfAll,
 		}
@@ -196,7 +206,14 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		case key.Matches(msg, cl.keybindings.showLogs):
 			cmd = cl.handleShowLogs()
-			cmds = append(cmds, cmd)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		case key.Matches(msg, cl.keybindings.execShell):
+			cmd = cl.handleExecShell()
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
 		case key.Matches(msg, cl.keybindings.toggleSelection):
 			cl.handleToggleSelection()
 		case key.Matches(msg, cl.keybindings.toggleSelectionOfAll):

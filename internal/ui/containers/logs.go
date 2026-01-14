@@ -1,123 +1,153 @@
+// Package containers provides a component for viewing container logs in a scrollable overlay.
 package containers
 
 import (
-	"io"
+	"bufio"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/givensuman/containertui/internal/client"
-	"github.com/givensuman/containertui/internal/colors"
-	"github.com/givensuman/containertui/internal/context"
-	"github.com/givensuman/containertui/internal/ui/shared"
+	contxt "github.com/givensuman/containertui/internal/context"
 )
 
-type (
-	LogChunkMsg []byte
-	LogErrorMsg error
-)
-
+// ContainerLogs displays and scrolls logs for a specific container.
 type ContainerLogs struct {
-	shared.Component
-	container   *ContainerItem
-	logs        client.Logs
-	viewport    viewport.Model
-	isFollowing bool
-	logBuffer   strings.Builder
-	style       lipgloss.Style
+	viewport  viewport.Model // log viewport
+	container *ContainerItem // reference to container for fetching logs
+	lines     []string       // current log lines
+	loaded    bool           // Marks if log stream goroutine running
+	error     error          // holds error from log fetching
+	width     int
+	height    int
+	atBottom  bool          // If true, auto-scroll when new lines appear
+	streaming bool          // If true, log streaming is ongoing
+	cancelCh  chan struct{} // To stop log streaming goroutine
 }
 
-func waitForLogs(reader io.Reader) tea.Cmd {
-	return func() tea.Msg {
-		buf := make([]byte, 2048)
-		n, err := reader.Read(buf)
-		if err != nil {
-			return LogErrorMsg(err)
-		}
-		return LogChunkMsg(buf[:n])
-	}
-}
-
+// newContainerLogs initializes the logs overlay for the given container.
 func newContainerLogs(container *ContainerItem) *ContainerLogs {
-	w, h := context.GetWindowSize()
-
-	cl := &ContainerLogs{
-		container:   container,
-		logs:        context.GetClient().OpenLogs(container.ID),
-		isFollowing: true,
-		style: lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colors.Primary()).
-			Padding(0, 1),
+	v := viewport.New(80, 20) // default size, will be updated
+	v.SetContent("Loading logs...")
+	return &ContainerLogs{
+		viewport:  v,
+		container: container,
+		width:     80,
+		height:    20,
+		atBottom:  true,
+		streaming: false,
+		cancelCh:  make(chan struct{}, 1),
 	}
-
-	cl.viewport = viewport.New(0, 0)
-	cl.setDimensions(w, h)
-
-	return cl
-}
-
-func (cl *ContainerLogs) setDimensions(w, h int) {
-	cl.WindowWidth = w
-	cl.WindowHeight = h
-
-	lm := shared.NewLayoutManager(w, h)
-	dims := lm.CalculateLargeOverlay(cl.style)
-
-	cl.style = cl.style.Width(dims.Width).Height(dims.Height)
-	cl.viewport.Width = dims.ContentWidth
-	cl.viewport.Height = dims.ContentHeight
 }
 
 func (cl *ContainerLogs) Init() tea.Cmd {
-	return waitForLogs(cl.logs)
+	return cl.streamLogsCmd()
 }
 
+// streamLogsCmd streams logs live and sends new lines as they arrive, until cancelled.
+func (cl *ContainerLogs) streamLogsCmd() tea.Cmd {
+	containerID := cl.container.ID
+	cancelCh := cl.cancelCh
+	return func() tea.Msg {
+		reader, err := contxt.GetClient().OpenLogs(containerID)
+		if err != nil {
+			return logsLoadedMsg{lines: nil, err: err}
+		}
+		scanner := bufio.NewScanner(reader)
+		for {
+			select {
+			case <-cancelCh:
+				return nil // Overlay closed, stop streaming
+			default:
+				if !scanner.Scan() {
+					return nil // end of stream
+				}
+				line := scanner.Text()
+				return newLogLineMsg{line: line}
+			}
+		}
+	}
+}
+
+// logsLoadedMsg used internally to dispatch logs from async fetch to UI
+// or signal error
+
+type logsLoadedMsg struct {
+	lines []string
+	err   error
+}
+
+type newLogLineMsg struct {
+	line string
+}
+
+// Update implements the Bubbletea update loop for the logs overlay.
 func (cl *ContainerLogs) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
-	case LogChunkMsg:
-		cl.logBuffer.Write(msg)
-		cl.viewport.SetContent(cl.logBuffer.String())
+	case logsLoadedMsg:
+		cl.loaded = true
+		cl.error = msg.err
+		if msg.err == nil {
+			cl.lines = msg.lines
+			cl.viewport.SetContent(strings.Join(msg.lines, "\n"))
+			cl.atBottom = true
+		} else {
+			cl.viewport.SetContent("Error loading logs: " + msg.err.Error())
+		}
+		return cl, nil
 
-		if cl.isFollowing {
+	case newLogLineMsg:
+		cl.lines = append(cl.lines, msg.line)
+		cl.viewport.SetContent(strings.Join(cl.lines, "\n"))
+		// If at the bottom or the log buffer size <= height, scroll to end
+		if cl.atBottom || len(cl.lines) <= cl.viewport.Height {
 			cl.viewport.GotoBottom()
 		}
-		cmds = append(cmds, waitForLogs(cl.logs))
-
-	case tea.WindowSizeMsg:
-		cl.setDimensions(msg.Width, msg.Height)
+		return cl, cl.streamLogsCmd()
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "f": // Toggle Follow/Tail
-			cl.isFollowing = !cl.isFollowing
-			if cl.isFollowing {
-				cl.viewport.GotoBottom()
+		case "q", "esc":
+			// Cancel streaming goroutine
+			if cl.cancelCh != nil {
+				close(cl.cancelCh)
 			}
-		case "esc", "q":
-			_ = cl.logs.Close()
 			return cl, CloseOverlay()
+		case "up", "down", "pgup", "pgdown", "mouse wheel up", "mouse wheel down":
+			// Let viewport handle
+			vp, _ := cl.viewport.Update(msg)
+			cl.viewport = vp
+			newScroll := cl.viewport.ScrollPercent()
+			if newScroll < 0.99 {
+				cl.atBottom = false
+			} else {
+				cl.atBottom = true
+			}
+			return cl, nil
 		}
+		return cl, nil
+	case tea.WindowSizeMsg:
+		cl.setDimensions(msg.Width, msg.Height)
+		return cl, nil
 	}
-
-	var cmd tea.Cmd
-	cl.viewport, cmd = cl.viewport.Update(msg)
-	cmds = append(cmds, cmd)
-
-	return cl, tea.Batch(cmds...)
+	// Pass through viewport and mouse messages
+	vp, cmd := cl.viewport.Update(msg)
+	cl.viewport = vp
+	return cl, cmd
 }
 
-func (cl *ContainerLogs) View() string {
-	// TODO: Improve this! Better bar design, scroll handling, etc.
-	followStatus := " [Tail: ON] "
-	if !cl.isFollowing {
-		followStatus = " [Tail: OFF] "
+// setDimensions resizes the viewport and overlay on terminal window change.
+func (cl *ContainerLogs) setDimensions(width, height int) {
+	cl.width = width
+	cl.height = height
+	cl.viewport.Width = width - 4   // leave padding for overlay border
+	cl.viewport.Height = height - 6 // leave padding for title/controls
+	if cl.loaded && len(cl.lines) > 0 {
+		cl.viewport.SetContent(strings.Join(cl.lines, "\n"))
 	}
+}
 
-	return lipgloss.JoinVertical(lipgloss.Left,
-		cl.style.Render(cl.viewport.View(), lipgloss.NewStyle().Foreground(colors.Primary()).Render(followStatus)),
-	)
+// View renders the log overlay with controls and instructions.
+func (cl *ContainerLogs) View() string {
+	title := "--- Container Logs (Press q or esc to close, ↑↓ to scroll) ---"
+	return title + "\n" + cl.viewport.View()
 }

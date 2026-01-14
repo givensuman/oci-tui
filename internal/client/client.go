@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"io"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -163,4 +164,27 @@ func (cw *ClientWrapper) OpenLogs(id string) (Logs, error) {
 		return nil, err
 	}
 	return reader, nil
+}
+
+// ExecShell starts an interactive shell (e.g., /bin/sh or /bin/bash) in the container with a TTY.
+// Returns an io.ReadWriteCloser for bi-directional communication, or error.
+func (cw *ClientWrapper) ExecShell(id string, shell []string) (io.ReadWriteCloser, error) {
+	execConfig := client.ExecCreateOptions{
+		Cmd:          shell,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		TTY:          true,
+	}
+	execResp, err := cw.client.ExecCreate(context.Background(), id, execConfig)
+	if err != nil {
+		return nil, err
+	}
+	attachResp, err := cw.client.ExecAttach(context.Background(), execResp.ID, client.ExecAttachOptions{
+		TTY: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return attachResp.Conn, nil // attaches to socket, full duplex
 }
