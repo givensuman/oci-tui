@@ -18,7 +18,7 @@ func AdjustedHeight(height int, ratio WindowRatio) int {
 }
 
 var (
-	RatioFullscreen   WindowRatio = WindowRatio{1.0, 1.0}
-	RatioModal        WindowRatio = WindowRatio{0.4, 0.2}
-	RatioLargeOverlay WindowRatio = WindowRatio{0.8, 0.8}
+	RatioFullscreen   = WindowRatio{1.0, 1.0}
+	RatioModal        = WindowRatio{0.4, 0.2}
+	RatioLargeOverlay = WindowRatio{0.8, 0.8}
 )

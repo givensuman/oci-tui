@@ -68,6 +68,8 @@ func (ci ContainerItem) getContainerStateIcon() string {
 			return "="
 		case container.StateExited:
 			return "#"
+		default:
+			return ">"
 		}
 	case false: // Use nerd fonts
 		switch ci.State {
@@ -77,6 +79,8 @@ func (ci ContainerItem) getContainerStateIcon() string {
 			return " "
 		case container.StateExited:
 			return " "
+		default:
+			return " "
 		}
 	}
 
@@ -157,6 +161,8 @@ func (ci ContainerItem) Title() string {
 	case container.StatePaused:
 		titleColor = colors.Yellow()
 	case container.StateExited:
+		titleColor = colors.Gray()
+	default:
 		titleColor = colors.Gray()
 	}
 	title = lipgloss.NewStyle().

@@ -89,7 +89,6 @@ linters:
         - name: package-comments
         - name: range
         - name: time-naming
-        - name: indent-error-flow
         - name: errorf
         - name: superfluous-else
   exclusions:

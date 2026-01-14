@@ -49,7 +49,7 @@ func (cw *ClientWrapper) GetContainers() []Container {
 	if err != nil {
 		panic(err)
 	}
-	var dockerContainers []Container
+	dockerContainers := make([]Container, 0, len(containers.Items))
 	for _, container := range containers.Items {
 		dockerContainers = append(dockerContainers, Container{
 			ID:    container.ID,

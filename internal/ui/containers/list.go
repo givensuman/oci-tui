@@ -93,7 +93,7 @@ var (
 
 func newContainerList() ContainerList {
 	containers := context.GetClient().GetContainers()
-	var containerItems []list.Item
+	containerItems := make([]list.Item, 0, len(containers))
 	for _, container := range containers {
 		containerItems = append(
 			containerItems,
