@@ -8,13 +8,13 @@ import (
 )
 
 // ParseColors parses color overrides from a slice of strings
-// Format: ["primary=#b4befe'", "yellow=#f9e2af", "green=#a6e3a1"]
-func ParseColors(colorStrings []string) (*config.ColorConfig, error) {
+// Format: ["primary=#b4befe'", "warning=#f9e2af", "success=#a6e3a1"]
+func ParseColors(colorStrings []string) (*config.ThemeConfig, error) {
 	if len(colorStrings) == 0 {
-		return &config.ColorConfig{}, nil
+		return &config.ThemeConfig{}, nil
 	}
 
-	colorConfig := &config.ColorConfig{}
+	colorConfig := &config.ThemeConfig{}
 	allPairs := []string{}
 
 	// Collect all pairs from all strings
@@ -42,7 +42,7 @@ func ParseColors(colorStrings []string) (*config.ColorConfig, error) {
 		key := strings.ToLower(strings.TrimSpace(parts[0]))
 		value := strings.TrimSpace(parts[1])
 
-		// Validate that value doesn't contain '=' (invalid format)
+		// Validate that value doesn't contain another '='
 		if strings.Contains(value, "=") {
 			return nil, fmt.Errorf("invalid color value: %s (values cannot contain '=')", value)
 		}
@@ -50,40 +50,20 @@ func ParseColors(colorStrings []string) (*config.ColorConfig, error) {
 		switch key {
 		case "primary":
 			colorConfig.Primary = config.ConfigString(value)
-		case "yellow":
-			colorConfig.Yellow = config.ConfigString(value)
-		case "green":
-			colorConfig.Green = config.ConfigString(value)
-		case "gray":
-			colorConfig.Gray = config.ConfigString(value)
-		case "blue":
-			colorConfig.Blue = config.ConfigString(value)
-		case "white":
-			colorConfig.White = config.ConfigString(value)
-		case "black":
-			colorConfig.Black = config.ConfigString(value)
-		case "red":
-			colorConfig.Red = config.ConfigString(value)
-		case "magenta":
-			colorConfig.Magenta = config.ConfigString(value)
-		case "cyan":
-			colorConfig.Cyan = config.ConfigString(value)
-		case "bright-black":
-			colorConfig.BrightBlack = config.ConfigString(value)
-		case "bright-red":
-			colorConfig.BrightRed = config.ConfigString(value)
-		case "bright-green":
-			colorConfig.BrightGreen = config.ConfigString(value)
-		case "bright-yellow":
-			colorConfig.BrightYellow = config.ConfigString(value)
-		case "bright-blue":
-			colorConfig.BrightBlue = config.ConfigString(value)
-		case "bright-magenta":
-			colorConfig.BrightMagenta = config.ConfigString(value)
-		case "bright-cyan":
-			colorConfig.BrightCyan = config.ConfigString(value)
-		case "bright-white":
-			colorConfig.BrightWhite = config.ConfigString(value)
+		case "border":
+			colorConfig.Border = config.ConfigString(value)
+		case "text":
+			colorConfig.Text = config.ConfigString(value)
+		case "muted":
+			colorConfig.Muted = config.ConfigString(value)
+		case "selected":
+			colorConfig.Selected = config.ConfigString(value)
+		case "success":
+			colorConfig.Success = config.ConfigString(value)
+		case "warning":
+			colorConfig.Warning = config.ConfigString(value)
+		case "error":
+			colorConfig.Error = config.ConfigString(value)
 		default:
 			return nil, fmt.Errorf("unknown color key: %s", key)
 		}

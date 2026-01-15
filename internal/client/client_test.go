@@ -18,7 +18,6 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestContainer(t *testing.T) {
-	// Test Container struct
 	c := Container{
 		ID:    "test-id",
 		Name:  "test-name",
@@ -76,7 +75,6 @@ func TestGetContainerState(t *testing.T) {
 		}
 	}()
 
-	// Test with nonexistent container
 	state, err := client.GetContainerState("nonexistent")
 	if err == nil && state != "unknown" {
 		t.Errorf("expected 'unknown' for nonexistent container, got %s", state)

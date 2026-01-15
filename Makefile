@@ -19,8 +19,11 @@ install: ## install golang binary
 
 .PHONY: run
 run: ## run the app
-	DEBUG=true
 	go run ./cmd
+
+.PHONY: test-container
+test-container: ## build a container for testing TUI
+	docker run -d alpine sh -c "while true; do date; sleep 1; done"
 
 .PHONY: test
 test: clean ## run tests with coverage

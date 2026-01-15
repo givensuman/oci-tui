@@ -1,4 +1,4 @@
-// Package config provides functionality to load and manage application configuration
+// Package config provides functionality to load and manage application configuration.
 package config
 
 import (
@@ -9,22 +9,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config holds the application configuration
+// Config holds the application configuration.
 type Config struct {
 	NoNerdFonts ConfigBool  `yaml:"no-nerd-fonts"`
-	Colors      ColorConfig `yaml:"colors,omitempty"`
+	Theme       ThemeConfig `yaml:"colors,omitempty"`
 }
 
 // DefaultConfig returns a default configuration
 func DefaultConfig() *Config {
 	return &Config{
 		NoNerdFonts: false,
-		Colors:      emptyColorConfig(),
+		Theme:       emptyThemeConfig(),
 	}
 }
 
-// LoadFromFile loads configuration from a YAML file
-// If path is empty, uses the default config file path
+// LoadFromFile loads configuration from a YAML file.
+// If path is empty, uses the default config file path.
 func LoadFromFile(path string) (*Config, error) {
 	if path == "" {
 		var err error
@@ -66,7 +66,7 @@ func ConfigDir() (string, error) {
 	return filepath.Join(configDir, "containertui"), nil
 }
 
-// ConfigFilePath returns the default configuration file path
+// ConfigFilePath returns the default configuration file path.
 func ConfigFilePath() (string, error) {
 	dir, err := ConfigDir()
 	if err != nil {
