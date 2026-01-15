@@ -1,11 +1,11 @@
 package containers
 
 import (
-	"log"
 	"os/exec"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/givensuman/containertui/internal/ui/notifications"
 	"github.com/moby/moby/api/types/container"
 )
 
@@ -166,14 +166,11 @@ func (cl *ContainerList) handleRemoveContainers() tea.Cmd {
 func (cl *ContainerList) handleShowLogs() tea.Cmd {
 	item, ok := cl.list.SelectedItem().(ContainerItem)
 	if !ok || item.isWorking {
-		log.Print()
 		return nil
 	}
 
-	// TODO: Replace with notification
 	if item.State != container.StateRunning {
-		log.Printf("%s is not running...", item.Name)
-		return nil
+		return notifications.ShowInfo(item.Name + " is not running")
 	}
 
 	return OpenContainerLogs(&item)
@@ -186,8 +183,7 @@ func (cl *ContainerList) handleExecShell() tea.Cmd {
 	}
 
 	if item.State != container.StateRunning {
-		log.Printf("%s is not running...", item.Name)
-		return nil
+		return notifications.ShowInfo(item.Name + " is not running")
 	}
 
 	// We'll use tea.ExecProcess to run `docker exec -it <id> /bin/sh`
@@ -197,7 +193,15 @@ func (cl *ContainerList) handleExecShell() tea.Cmd {
 	c := exec.Command("docker", "exec", "-it", item.ID, "/bin/sh")
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		if err != nil {
-			log.Printf("Exec failed: %v", err)
+			// tea.ExecProcess callback returns a Msg, not a Cmd.
+			// So we need to construct the Msg manually or change how notifications work.
+			// But notifications.ShowError returns a Cmd.
+			// Let's just create the message directly.
+			return notifications.AddNotificationMsg{
+				Message:  err.Error(),
+				Level:    notifications.Error,
+				Duration: 10 * 1000 * 1000 * 1000, // 10s
+			}
 		}
 		// Refresh container state after coming back, just in case
 		// Note: We might want a specific message type for this
@@ -277,12 +281,11 @@ func (cl *ContainerList) handleToggleSelectionOfAll() {
 	}
 }
 
-func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOperationResult) {
+func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOperationResult) tea.Cmd {
 	cl.setWorkingState(msg.IDs, false)
 
 	if msg.Error != nil {
-		// TODO: Replace with notification
-		return
+		return notifications.ShowError(msg.Error)
 	}
 
 	if msg.Operation == Remove {
@@ -303,7 +306,7 @@ func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOper
 			cl.list.RemoveItem(index)
 		}
 
-		return
+		return notifications.ShowSuccess("Container(s) removed successfully")
 	}
 
 	var newState container.ContainerState
@@ -315,7 +318,7 @@ func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOper
 	case Stop:
 		newState = container.StateExited
 	default:
-		return
+		return nil
 	}
 
 	items := cl.list.Items()
@@ -330,4 +333,5 @@ func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOper
 			}
 		}
 	}
+	return nil
 }

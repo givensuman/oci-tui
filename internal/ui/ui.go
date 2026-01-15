@@ -3,26 +3,37 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	overlay "github.com/rmhubbert/bubbletea-overlay"
 
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/containers"
+	"github.com/givensuman/containertui/internal/ui/notifications"
 )
 
 // Model represents the top-level Bubbletea UI model.
 // Contains terminal dimensions and the containers model (main TUI view).
 type Model struct {
-	width           int              // current terminal width
-	height          int              // current terminal height
-	containersModel containers.Model // main containers view/model
+	width              int                 // current terminal width
+	height             int                 // current terminal height
+	containersModel    containers.Model    // main containers view/model
+	notificationsModel notifications.Model // notifications view/model
+	overlayModel       *overlay.Model      // global overlay for notifications
 }
 
 func NewModel() Model {
 	width, height := context.GetWindowSize()
 
+	conts := containers.New()
+	notifs := notifications.New()
+
+	ov := overlay.New(notifs, conts, overlay.Right, overlay.Top, 0, 0)
+
 	return Model{
-		width:           width,
-		height:          height,
-		containersModel: containers.New(),
+		width:              width,
+		height:             height,
+		containersModel:    conts,
+		notificationsModel: notifs,
+		overlayModel:       ov,
 	}
 }
 
@@ -53,9 +64,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Update Notifications
+	notifsModel, cmd := m.notificationsModel.Update(msg)
+	m.notificationsModel = notifsModel.(notifications.Model)
+	cmds = append(cmds, cmd)
+
 	// Forward non-window/non-quit messages to containers view model
 	containersModel, cmd := m.containersModel.Update(msg)
 	m.containersModel = containersModel.(containers.Model)
+	cmds = append(cmds, cmd)
+
+	// Sync overlay
+	m.overlayModel.Foreground = m.notificationsModel
+	m.overlayModel.Background = m.containersModel
+
+	// Update overlay (mostly for resizing if needed, though we handle window size manually too)
+	// We ignore the returned model here as we hold the reference in m.overlayModel pointer,
+	// but the library might return a new one or update internal state.
+	updatedOverlay, cmd := m.overlayModel.Update(msg)
+	if ov, ok := updatedOverlay.(*overlay.Model); ok {
+		m.overlayModel = ov
+	}
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -63,7 +92,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the terminal as a string (delegated to containersModel).
 func (m Model) View() string {
-	return m.containersModel.View()
+	return m.overlayModel.View()
 }
 
 // Start the Bubbletea UI main loop.

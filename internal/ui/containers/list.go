@@ -176,7 +176,10 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case MessageContainerOperationResult:
-		cl.handleContainerOperationResult(msg)
+		cmd = cl.handleContainerOperationResult(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 
 	case tea.KeyMsg:
 		if cl.list.FilterState() == list.Filtering {
