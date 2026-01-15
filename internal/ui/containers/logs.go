@@ -20,23 +20,7 @@ type ContainerLogs struct {
 	width     int
 	height    int
 	atBottom  bool          // If true, auto-scroll when new lines appear
-	streaming bool          // If true, log streaming is ongoing
 	cancelCh  chan struct{} // To stop log streaming goroutine
-}
-
-// newContainerLogs initializes the logs overlay for the given container.
-func newContainerLogs(container *ContainerItem) *ContainerLogs {
-	v := viewport.New(80, 20) // default size, will be updated
-	v.SetContent("Loading logs...")
-	return &ContainerLogs{
-		viewport:  v,
-		container: container,
-		width:     80,
-		height:    20,
-		atBottom:  true,
-		streaming: false,
-		cancelCh:  make(chan struct{}, 1),
-	}
 }
 
 func (cl *ContainerLogs) Init() tea.Cmd {
@@ -70,7 +54,6 @@ func (cl *ContainerLogs) streamLogsCmd() tea.Cmd {
 
 // logsLoadedMsg used internally to dispatch logs from async fetch to UI
 // or signal error
-
 type logsLoadedMsg struct {
 	lines []string
 	err   error
