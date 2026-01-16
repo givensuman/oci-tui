@@ -1,4 +1,4 @@
-// Package containers defines the containers component
+// Package containers defines the containers component.
 package containers
 
 import (

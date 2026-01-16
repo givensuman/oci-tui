@@ -18,6 +18,29 @@ type Container struct {
 	State container.ContainerState `json:"State"`
 }
 
+// Image represents a Docker image.
+type Image struct {
+	ID       string   `json:"Id"`
+	RepoTags []string `json:"RepoTags"`
+	Size     int64    `json:"Size"`
+	Created  int64    `json:"Created"`
+}
+
+// Network represents a Docker network.
+type Network struct {
+	ID     string `json:"Id"`
+	Name   string `json:"Name"`
+	Driver string `json:"Driver"`
+	Scope  string `json:"Scope"`
+}
+
+// Volume represents a Docker volume.
+type Volume struct {
+	Name       string `json:"Name"`
+	Driver     string `json:"Driver"`
+	Mountpoint string `json:"Mountpoint"`
+}
+
 // ClientWrapper wraps the Docker client to provide container management functionalities.
 type ClientWrapper struct {
 	client *client.Client
@@ -59,6 +82,74 @@ func (cw *ClientWrapper) GetContainers() ([]Container, error) {
 	}
 
 	return dockerContainers, nil
+}
+
+// GetImages retrieves a list of all Docker images.
+func (cw *ClientWrapper) GetImages() ([]Image, error) {
+	// Assuming client.ImageListOptions exists and follows the pattern
+	listOptions := client.ImageListOptions{
+		All: true,
+	}
+
+	images, err := cw.client.ImageList(context.Background(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	dockerImages := make([]Image, 0, len(images.Items))
+	for _, img := range images.Items {
+		dockerImages = append(dockerImages, Image{
+			ID:       img.ID,
+			RepoTags: img.RepoTags,
+			Size:     img.Size,
+			Created:  img.Created,
+		})
+	}
+
+	return dockerImages, nil
+}
+
+// GetNetworks retrieves a list of all Docker networks.
+func (cw *ClientWrapper) GetNetworks() ([]Network, error) {
+	listOptions := client.NetworkListOptions{}
+
+	networks, err := cw.client.NetworkList(context.Background(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	dockerNetworks := make([]Network, 0, len(networks.Items))
+	for _, net := range networks.Items {
+		dockerNetworks = append(dockerNetworks, Network{
+			ID:     net.ID,
+			Name:   net.Name,
+			Driver: net.Driver,
+			Scope:  net.Scope,
+		})
+	}
+
+	return dockerNetworks, nil
+}
+
+// GetVolumes retrieves a list of all Docker volumes.
+func (cw *ClientWrapper) GetVolumes() ([]Volume, error) {
+	listOptions := client.VolumeListOptions{}
+
+	volumes, err := cw.client.VolumeList(context.Background(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	dockerVolumes := make([]Volume, 0, len(volumes.Items))
+	for _, vol := range volumes.Items {
+		dockerVolumes = append(dockerVolumes, Volume{
+			Name:       vol.Name,
+			Driver:     vol.Driver,
+			Mountpoint: vol.Mountpoint,
+		})
+	}
+
+	return dockerVolumes, nil
 }
 
 // GetContainerState retrieves the current state of a specific Docker container by its ID.

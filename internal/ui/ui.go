@@ -8,23 +8,25 @@ import (
 
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/containers"
+	"github.com/givensuman/containertui/internal/ui/images"
+	"github.com/givensuman/containertui/internal/ui/networks"
 	"github.com/givensuman/containertui/internal/ui/notifications"
-	"github.com/givensuman/containertui/internal/ui/shared"
 	"github.com/givensuman/containertui/internal/ui/tabs"
+	"github.com/givensuman/containertui/internal/ui/volumes"
 )
 
 // Model represents the top-level Bubbletea UI model.
 // Contains terminal dimensions and the containers model (main TUI view).
 type Model struct {
-	width               int                 // current terminal width
-	height              int                 // current terminal height
-	tabsModel           tabs.Model          // tabs component
-	containersModel     containers.Model    // main containers view/model
-	imagesPlaceholder   shared.Placeholder  // placeholder for images view
-	volumesPlaceholder  shared.Placeholder  // placeholder for volumes view
-	networksPlaceholder shared.Placeholder  // placeholder for networks view
-	notificationsModel  notifications.Model // notifications view/model
-	overlayModel        *overlay.Model      // global overlay for notifications
+	width              int                 // current terminal width
+	height             int                 // current terminal height
+	tabsModel          tabs.Model          // tabs component
+	containersModel    containers.Model    // main containers view/model
+	imagesModel        images.Model        // images view/model
+	volumesModel       volumes.Model       // volumes view/model
+	networksModel      networks.Model      // networks view/model
+	notificationsModel notifications.Model // notifications view/model
+	overlayModel       *overlay.Model      // global overlay for notifications
 }
 
 func NewModel() Model {
@@ -32,20 +34,23 @@ func NewModel() Model {
 
 	tabsM := tabs.New()
 	conts := containers.New()
+	imgs := images.New()
+	vols := volumes.New()
+	nets := networks.New()
 	notifs := notifications.New()
 
 	ov := overlay.New(notifs, conts, overlay.Right, overlay.Top, 0, 0)
 
 	return Model{
-		width:               width,
-		height:              height,
-		tabsModel:           tabsM,
-		containersModel:     conts,
-		imagesPlaceholder:   shared.Placeholder{Title: "Images"},
-		volumesPlaceholder:  shared.Placeholder{Title: "Volumes"},
-		networksPlaceholder: shared.Placeholder{Title: "Networks"},
-		notificationsModel:  notifs,
-		overlayModel:        ov,
+		width:              width,
+		height:             height,
+		tabsModel:          tabsM,
+		containersModel:    conts,
+		imagesModel:        imgs,
+		volumesModel:       vols,
+		networksModel:      nets,
+		notificationsModel: notifs,
+		overlayModel:       ov,
 	}
 }
 
@@ -92,6 +97,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newConts, _ := m.containersModel.Update(contentMsg)
 		m.containersModel = newConts.(containers.Model)
 
+		newImgs, _ := m.imagesModel.Update(contentMsg)
+		m.imagesModel = newImgs.(images.Model)
+
+		newVols, _ := m.volumesModel.Update(contentMsg)
+		m.volumesModel = newVols.(volumes.Model)
+
+		newNets, _ := m.networksModel.Update(contentMsg)
+		m.networksModel = newNets.(networks.Model)
+
 	case tea.KeyMsg:
 		// Handle quit signals (Ctrl-C, Ctrl-D)
 		switch msg.String() {
@@ -127,11 +141,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			activeView = m.containersModel
 		}
 	case tabs.Images:
-		activeView = m.imagesPlaceholder
+		activeView = m.imagesModel
+		if _, ok := msg.(tea.WindowSizeMsg); !ok {
+			imagesModel, cmd := m.imagesModel.Update(msg)
+			m.imagesModel = imagesModel.(images.Model)
+			cmds = append(cmds, cmd)
+			activeView = m.imagesModel
+		}
 	case tabs.Volumes:
-		activeView = m.volumesPlaceholder
+		activeView = m.volumesModel
+		if _, ok := msg.(tea.WindowSizeMsg); !ok {
+			volumesModel, cmd := m.volumesModel.Update(msg)
+			m.volumesModel = volumesModel.(volumes.Model)
+			cmds = append(cmds, cmd)
+			activeView = m.volumesModel
+		}
 	case tabs.Networks:
-		activeView = m.networksPlaceholder
+		activeView = m.networksModel
+		if _, ok := msg.(tea.WindowSizeMsg); !ok {
+			networksModel, cmd := m.networksModel.Update(msg)
+			m.networksModel = networksModel.(networks.Model)
+			cmds = append(cmds, cmd)
+			activeView = m.networksModel
+		}
 	}
 
 	// Sync overlay

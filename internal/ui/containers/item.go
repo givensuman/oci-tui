@@ -11,6 +11,7 @@ import (
 	"github.com/givensuman/containertui/internal/client"
 	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
+	"github.com/givensuman/containertui/internal/ui/shared"
 	"github.com/moby/moby/api/types/container"
 )
 
@@ -88,23 +89,10 @@ func (ci ContainerItem) getContainerStateIcon() string {
 }
 
 func newDefaultDelegate() list.DefaultDelegate {
-	d := list.NewDefaultDelegate()
+	delegate := list.NewDefaultDelegate()
+	delegate = shared.ChangeDelegateStyles(delegate)
 
-	d.Styles.SelectedTitle = d.Styles.SelectedTitle.
-		BorderLeftForeground(colors.Primary())
-	d.Styles.SelectedDesc = d.Styles.SelectedDesc.
-		Foreground(colors.White()).
-		BorderLeftForeground(colors.Primary())
-
-	d.Styles.DimmedDesc = d.Styles.DimmedDesc.
-		Foreground(colors.Gray()).
-		Bold(false)
-
-	d.Styles.FilterMatch = d.Styles.FilterMatch.
-		Foreground(colors.Primary()).
-		Bold(true)
-
-	d.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
+	delegate.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
 		if _, ok := msg.(spinner.TickMsg); ok {
 			var cmds []tea.Cmd
 			items := m.Items()
@@ -121,7 +109,7 @@ func newDefaultDelegate() list.DefaultDelegate {
 		return nil
 	}
 
-	return d
+	return delegate
 }
 
 func newSpinner() spinner.Model {
