@@ -21,6 +21,7 @@ type keybindings struct {
 	execShell            key.Binding
 	toggleSelection      key.Binding
 	toggleSelectionOfAll key.Binding
+	switchTab            key.Binding
 }
 
 func newKeybindings() *keybindings {
@@ -60,6 +61,10 @@ func newKeybindings() *keybindings {
 		toggleSelectionOfAll: key.NewBinding(
 			key.WithKeys(tea.KeyCtrlA.String()),
 			key.WithHelp("ctrl+a", "toggle selection of all"),
+		),
+		switchTab: key.NewBinding(
+			key.WithKeys("1", "2", "3", "4", "tab", "shift+tab"),
+			key.WithHelp("1-4/tab", "switch tab"),
 		),
 	}
 }
@@ -139,6 +144,7 @@ func newContainerList() ContainerList {
 			keybindings.execShell,
 			keybindings.toggleSelection,
 			keybindings.toggleSelectionOfAll,
+			keybindings.switchTab,
 		}
 	}
 
@@ -192,6 +198,9 @@ func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch {
+		// allow passing through of tab switching keys
+		case key.Matches(msg, cl.keybindings.switchTab):
+			return cl, nil
 		case key.Matches(msg, cl.keybindings.pauseContainer):
 			cmd = cl.handlePauseContainers()
 			cmds = append(cmds, cmd)
