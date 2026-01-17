@@ -2,8 +2,6 @@
 package tabs
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -114,19 +112,20 @@ func (m Model) View() string {
 	var tabs []string
 	for _, t := range m.Tabs {
 		if m.ActiveTab == t {
-			tabs = append(tabs, activeTabStyle.Render(" "+t.String()+" "))
+			tabs = append(tabs, activeTabStyle.Render(t.String()))
 		} else {
-			tabs = append(tabs, inactiveTabStyle.Render(" "+t.String()+" "))
+			tabs = append(tabs, inactiveTabStyle.Render(t.String()))
 		}
 	}
 
-	row := lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
+	row := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
 
 	// Fill the rest of the line with the gap style
-	gapWidth := max(0, m.WindowWidth-lipgloss.Width(row))
-	gap := tabGapStyle.Render(strings.Repeat(" ", gapWidth))
+	// We need to account for borders in width calculation
+	gapWidth := max(0, m.WindowWidth-lipgloss.Width(row)-2) // -2 for safety margin
+	gap := tabGapStyle.Width(gapWidth).Render("")
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, row, gap)
+	return lipgloss.JoinHorizontal(lipgloss.Bottom, row, gap)
 }
 
 func max(a, b int) int {
@@ -139,15 +138,22 @@ func max(a, b int) int {
 var (
 	// Active tab: Primary color background, distinct text
 	activeTabStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder(), true, true, false, true).
+			BorderForeground(colors.Primary()).
 			Foreground(colors.Primary()).
-			Background(colors.Text()).
-			Bold(true)
+			Padding(0, 1)
 
-	// Inactive tab: Border/Gray background, Muted/Gray text (or White if background is dark enough)
-	// Using Border color (Gray) for background to create a 'bar' effect.
+	// Inactive tab: Muted color, still needs rounded border structure to align with active tab but we hide top/sides?
+	// Actually, standard TUI tab design often puts a bottom border on the GAP, and NO bottom border on the active tab.
+	// But let's try to make them all visible first.
 	inactiveTabStyle = lipgloss.NewStyle().
-				Foreground(colors.Muted())
+				Border(lipgloss.RoundedBorder(), true, true, false, true).
+				BorderForeground(colors.Muted()).
+				Foreground(colors.Muted()).
+				Padding(0, 1)
 
-	// Gap: Same background as inactive tabs to create a continuous bar
-	tabGapStyle = lipgloss.NewStyle()
+	// Gap: Bottom border only to complete the line
+	tabGapStyle = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(colors.Muted())
 )

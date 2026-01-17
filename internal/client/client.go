@@ -5,17 +5,20 @@ import (
 	"context"
 	"io"
 
-	"github.com/moby/moby/api/types/container"
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/client"
 )
 
 // Container represents a Docker container with essential details.
 type Container struct {
 	container.Config
-	ID    string                   `json:"Id"`
-	Name  string                   `json:"Name"`
-	Image string                   `json:"Image"`
-	State container.ContainerState `json:"State"`
+	ID    string `json:"Id"`
+	Name  string `json:"Name"`
+	Image string `json:"Image"`
+	State string `json:"State"`
 }
 
 // Image represents a Docker image.
@@ -48,7 +51,7 @@ type ClientWrapper struct {
 
 // NewClient creates a new ClientWrapper with an initialized Docker client.
 func NewClient() (*ClientWrapper, error) {
-	dockerClient, err := client.New(client.FromEnv)
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +65,7 @@ func (cw *ClientWrapper) CloseClient() error {
 
 // GetContainers retrieves a list of all Docker containers.
 func (cw *ClientWrapper) GetContainers() ([]Container, error) {
-	listOptions := client.ContainerListOptions{
+	listOptions := container.ListOptions{
 		All: true,
 	}
 
@@ -71,13 +74,13 @@ func (cw *ClientWrapper) GetContainers() ([]Container, error) {
 		return nil, err
 	}
 
-	dockerContainers := make([]Container, 0, len(containers.Items))
-	for _, container := range containers.Items {
+	dockerContainers := make([]Container, 0, len(containers))
+	for _, c := range containers {
 		dockerContainers = append(dockerContainers, Container{
-			ID:    container.ID,
-			Name:  container.Names[0][1:],
-			Image: container.Image,
-			State: container.State,
+			ID:    c.ID,
+			Name:  c.Names[0][1:],
+			Image: c.Image,
+			State: c.State,
 		})
 	}
 
@@ -86,8 +89,7 @@ func (cw *ClientWrapper) GetContainers() ([]Container, error) {
 
 // GetImages retrieves a list of all Docker images.
 func (cw *ClientWrapper) GetImages() ([]Image, error) {
-	// Assuming client.ImageListOptions exists and follows the pattern
-	listOptions := client.ImageListOptions{
+	listOptions := types.ImageListOptions{
 		All: true,
 	}
 
@@ -96,8 +98,8 @@ func (cw *ClientWrapper) GetImages() ([]Image, error) {
 		return nil, err
 	}
 
-	dockerImages := make([]Image, 0, len(images.Items))
-	for _, img := range images.Items {
+	dockerImages := make([]Image, 0, len(images))
+	for _, img := range images {
 		dockerImages = append(dockerImages, Image{
 			ID:       img.ID,
 			RepoTags: img.RepoTags,
@@ -111,15 +113,15 @@ func (cw *ClientWrapper) GetImages() ([]Image, error) {
 
 // GetNetworks retrieves a list of all Docker networks.
 func (cw *ClientWrapper) GetNetworks() ([]Network, error) {
-	listOptions := client.NetworkListOptions{}
+	listOptions := types.NetworkListOptions{}
 
 	networks, err := cw.client.NetworkList(context.Background(), listOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	dockerNetworks := make([]Network, 0, len(networks.Items))
-	for _, net := range networks.Items {
+	dockerNetworks := make([]Network, 0, len(networks))
+	for _, net := range networks {
 		dockerNetworks = append(dockerNetworks, Network{
 			ID:     net.ID,
 			Name:   net.Name,
@@ -133,15 +135,15 @@ func (cw *ClientWrapper) GetNetworks() ([]Network, error) {
 
 // GetVolumes retrieves a list of all Docker volumes.
 func (cw *ClientWrapper) GetVolumes() ([]Volume, error) {
-	listOptions := client.VolumeListOptions{}
+	listOptions := volume.ListOptions{}
 
 	volumes, err := cw.client.VolumeList(context.Background(), listOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	dockerVolumes := make([]Volume, 0, len(volumes.Items))
-	for _, vol := range volumes.Items {
+	dockerVolumes := make([]Volume, 0, len(volumes.Volumes))
+	for _, vol := range volumes.Volumes {
 		dockerVolumes = append(dockerVolumes, Volume{
 			Name:       vol.Name,
 			Driver:     vol.Driver,
@@ -154,18 +156,17 @@ func (cw *ClientWrapper) GetVolumes() ([]Volume, error) {
 
 // GetContainerState retrieves the current state of a specific Docker container by its ID.
 func (cw *ClientWrapper) GetContainerState(id string) (string, error) {
-	inspectResponse, err := cw.client.ContainerInspect(context.Background(), id, client.ContainerInspectOptions{})
+	inspectResponse, err := cw.client.ContainerInspect(context.Background(), id)
 	if err != nil {
 		return "unknown", err
 	}
 
-	return string(inspectResponse.Container.State.Status), nil
+	return string(inspectResponse.State.Status), nil
 }
 
 // PauseContainer pauses a specific Docker container by its ID.
 func (cw *ClientWrapper) PauseContainer(id string) error {
-	_, err := cw.client.ContainerPause(context.Background(), id, client.ContainerPauseOptions{})
-	return err
+	return cw.client.ContainerPause(context.Background(), id)
 }
 
 // PauseContainers pauses multiple Docker containers by their IDs.
@@ -181,8 +182,7 @@ func (cw *ClientWrapper) PauseContainers(ids []string) error {
 
 // UnpauseContainer unpauses a specific Docker container by its ID.
 func (cw *ClientWrapper) UnpauseContainer(id string) error {
-	_, err := cw.client.ContainerUnpause(context.Background(), id, client.ContainerUnpauseOptions{})
-	return err
+	return cw.client.ContainerUnpause(context.Background(), id)
 }
 
 // UnpauseContainers unpauses multiple Docker containers by their IDs.
@@ -198,8 +198,7 @@ func (cw *ClientWrapper) UnpauseContainers(ids []string) error {
 
 // StartContainer starts a specific Docker container by its ID.
 func (cw *ClientWrapper) StartContainer(id string) error {
-	_, err := cw.client.ContainerStart(context.Background(), id, client.ContainerStartOptions{})
-	return err
+	return cw.client.ContainerStart(context.Background(), id, container.StartOptions{})
 }
 
 // StartContainers starts multiple Docker containers by their IDs.
@@ -215,8 +214,7 @@ func (cw *ClientWrapper) StartContainers(ids []string) error {
 
 // StopContainer stops a specific Docker container by its ID.
 func (cw *ClientWrapper) StopContainer(id string) error {
-	_, err := cw.client.ContainerStop(context.Background(), id, client.ContainerStopOptions{})
-	return err
+	return cw.client.ContainerStop(context.Background(), id, container.StopOptions{})
 }
 
 // StopContainers stops multiple Docker containers by their IDs.
@@ -232,12 +230,11 @@ func (cw *ClientWrapper) StopContainers(ids []string) error {
 
 // RemoveContainer removes a specific Docker container by its ID.
 func (cw *ClientWrapper) RemoveContainer(id string) error {
-	removeOptions := client.ContainerRemoveOptions{
+	removeOptions := container.RemoveOptions{
 		Force: true,
 	}
 
-	_, err := cw.client.ContainerRemove(context.Background(), id, removeOptions)
-	return err
+	return cw.client.ContainerRemove(context.Background(), id, removeOptions)
 }
 
 // RemoveContainers removes multiple Docker containers by their IDs.
@@ -252,11 +249,11 @@ func (cw *ClientWrapper) RemoveContainers(ids []string) error {
 }
 
 // Logs represents the response from Moby's ContainerLogs.
-type Logs client.ContainerLogsResult
+type Logs io.ReadCloser
 
 // OpenLogs streams logs from a Docker container.
 func (cw *ClientWrapper) OpenLogs(id string) (Logs, error) {
-	logsOptions := client.ContainerLogsOptions{
+	logsOptions := container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
@@ -274,27 +271,141 @@ func (cw *ClientWrapper) OpenLogs(id string) (Logs, error) {
 // ExecShell starts an interactive shell (e.g., /bin/sh or /bin/bash) in the container with a TTY.
 // Returns an io.ReadWriteCloser for bi-directional communication, or error.
 func (cw *ClientWrapper) ExecShell(id string, shell []string) (io.ReadWriteCloser, error) {
-	execCreateOptions := client.ExecCreateOptions{
+	execCreateOptions := types.ExecConfig{
 		Cmd:          shell,
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		TTY:          true,
+		Tty:          true,
 	}
 
-	execResp, err := cw.client.ExecCreate(context.Background(), id, execCreateOptions)
+	execResp, err := cw.client.ContainerExecCreate(context.Background(), id, execCreateOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	execAttachOptions := client.ExecAttachOptions{
-		TTY: true,
+	execAttachOptions := types.ExecStartCheck{
+		Tty: true,
 	}
 
-	attachResp, err := cw.client.ExecAttach(context.Background(), execResp.ID, execAttachOptions)
+	attachResp, err := cw.client.ContainerExecAttach(context.Background(), execResp.ID, execAttachOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	return attachResp.Conn, nil // attaches to socket, full duplex
+}
+
+// RemoveImage removes a specific Docker image by its ID.
+func (cw *ClientWrapper) RemoveImage(id string) error {
+	options := types.ImageRemoveOptions{
+		Force:         false,
+		PruneChildren: true,
+	}
+
+	_, err := cw.client.ImageRemove(context.Background(), id, options)
+	return err
+}
+
+// RemoveVolume removes a specific Docker volume by its name.
+func (cw *ClientWrapper) RemoveVolume(name string) error {
+	return cw.client.VolumeRemove(context.Background(), name, false)
+}
+
+// RemoveNetwork removes a specific Docker network by its ID.
+func (cw *ClientWrapper) RemoveNetwork(id string) error {
+	return cw.client.NetworkRemove(context.Background(), id)
+}
+
+// PruneImages removes all unused images.
+func (cw *ClientWrapper) PruneImages() (uint64, error) {
+	report, err := cw.client.ImagesPrune(context.Background(), filters.Args{})
+	if err != nil {
+		return 0, err
+	}
+	return report.SpaceReclaimed, nil
+}
+
+// PruneVolumes removes all unused volumes.
+func (cw *ClientWrapper) PruneVolumes() (uint64, error) {
+	report, err := cw.client.VolumesPrune(context.Background(), filters.Args{})
+	if err != nil {
+		return 0, err
+	}
+	return report.SpaceReclaimed, nil
+}
+
+// PruneNetworks removes all unused networks.
+func (cw *ClientWrapper) PruneNetworks() error {
+	_, err := cw.client.NetworksPrune(context.Background(), filters.Args{})
+	return err
+}
+
+// GetContainersUsingImage returns a list of container names that are using the specified image ID.
+func (cw *ClientWrapper) GetContainersUsingImage(imageID string) ([]string, error) {
+	containers, err := cw.client.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	var usedBy []string
+	for _, c := range containers {
+		if c.ImageID == imageID {
+			// Name usually comes with a slash, e.g., "/my-container"
+			name := c.Names[0]
+			if len(name) > 0 && name[0] == '/' {
+				name = name[1:]
+			}
+			usedBy = append(usedBy, name)
+		}
+	}
+	return usedBy, nil
+}
+
+// GetContainersUsingVolume returns a list of container names that are using the specified volume name.
+func (cw *ClientWrapper) GetContainersUsingVolume(volumeName string) ([]string, error) {
+	containers, err := cw.client.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	var usedBy []string
+	for _, c := range containers {
+		for _, m := range c.Mounts {
+			if m.Name == volumeName || m.Source == volumeName {
+				name := c.Names[0]
+				if len(name) > 0 && name[0] == '/' {
+					name = name[1:]
+				}
+				usedBy = append(usedBy, name)
+				break // Found usage in this container, move to next container
+			}
+		}
+	}
+	return usedBy, nil
+}
+
+// GetContainersUsingNetwork returns a list of container names that are attached to the specified network ID.
+func (cw *ClientWrapper) GetContainersUsingNetwork(networkID string) ([]string, error) {
+	containers, err := cw.client.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	var usedBy []string
+	for _, c := range containers {
+		if c.NetworkSettings != nil {
+			for _, net := range c.NetworkSettings.Networks {
+				if net.NetworkID == networkID {
+					name := c.Names[0]
+					if len(name) > 0 && name[0] == '/' {
+						name = name[1:]
+					}
+					usedBy = append(usedBy, name)
+					break
+				}
+			}
+		}
+	}
+	return usedBy, nil
 }

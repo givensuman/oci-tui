@@ -6,7 +6,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/givensuman/containertui/internal/ui/notifications"
-	"github.com/moby/moby/api/types/container"
 )
 
 func (cl *ContainerList) getSelectedContainerIDs() []string {
@@ -169,7 +168,7 @@ func (cl *ContainerList) handleShowLogs() tea.Cmd {
 		return nil
 	}
 
-	if item.State != container.StateRunning {
+	if item.State != "running" {
 		return notifications.ShowInfo(item.Name + " is not running")
 	}
 
@@ -192,7 +191,7 @@ func (cl *ContainerList) handleExecShell() tea.Cmd {
 		return nil
 	}
 
-	if item.State != container.StateRunning {
+	if item.State != "running" {
 		return notifications.ShowInfo(item.Name + " is not running")
 	}
 
@@ -319,14 +318,14 @@ func (cl *ContainerList) handleContainerOperationResult(msg MessageContainerOper
 		return notifications.ShowSuccess("Container(s) removed successfully")
 	}
 
-	var newState container.ContainerState
+	var newState string
 	switch msg.Operation {
 	case Pause:
-		newState = container.StatePaused
+		newState = "paused"
 	case Unpause, Start:
-		newState = container.StateRunning
+		newState = "running"
 	case Stop:
-		newState = container.StateExited
+		newState = "exited"
 	default:
 		return nil
 	}

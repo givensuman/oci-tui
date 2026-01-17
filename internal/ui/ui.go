@@ -82,7 +82,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tabsModel = newTabs.(tabs.Model)
 
 		// Calculate content height (subtract tabs height which is usually 1-2 lines)
-		contentHeight := msg.Height - 2
+		// Tabs normally take up 3 lines (border + content + padding/margin potentially)
+		// We'll reserve 3 lines to be safe and ensure the content doesn't overflow
+		contentHeight := msg.Height - 3
 		if contentHeight < 0 {
 			contentHeight = 0
 		}

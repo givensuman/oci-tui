@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/client"
+	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/shared"
 )
@@ -130,7 +131,11 @@ func newContainerList() ContainerList {
 
 	list.SetShowTitle(false)
 	list.SetShowStatusBar(false)
-	list.SetFilteringEnabled(false)
+	list.SetFilteringEnabled(true)
+	list.Styles.FilterPrompt = lipgloss.NewStyle().Foreground(colors.Primary())
+	list.Styles.FilterCursor = lipgloss.NewStyle().Foreground(colors.Primary())
+	list.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(colors.Primary())
+	list.FilterInput.Cursor.Style = lipgloss.NewStyle().Foreground(colors.Primary())
 
 	keybindings := newKeybindings()
 	list.AdditionalFullHelpKeys = func() []key.Binding {
@@ -161,11 +166,11 @@ func (cl *ContainerList) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 	cl.WindowHeight = msg.Height
 
 	lm := shared.NewLayoutManager(msg.Width, msg.Height)
-	dims := lm.CalculateFullscreen(cl.style)
+	master, _ := lm.CalculateMasterDetail(cl.style)
 
-	cl.style = cl.style.Width(dims.Width).Height(dims.Height)
-	cl.list.SetWidth(dims.ContentWidth)
-	cl.list.SetHeight(dims.ContentHeight)
+	cl.style = cl.style.Width(master.Width).Height(master.Height)
+	cl.list.SetWidth(master.ContentWidth)
+	cl.list.SetHeight(master.ContentHeight)
 }
 
 func (cl ContainerList) Init() tea.Cmd {

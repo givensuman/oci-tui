@@ -12,7 +12,6 @@ import (
 	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
 	"github.com/givensuman/containertui/internal/ui/shared"
-	"github.com/moby/moby/api/types/container"
 )
 
 type ContainerItem struct {
@@ -63,22 +62,22 @@ func (ci ContainerItem) getContainerStateIcon() string {
 	switch context.GetConfig().NoNerdFonts {
 	case true: // Don't use nerd fonts
 		switch ci.State {
-		case container.StateRunning:
+		case "running":
 			return ">"
-		case container.StatePaused:
+		case "paused":
 			return "="
-		case container.StateExited:
+		case "exited":
 			return "#"
 		default:
 			return ">"
 		}
 	case false: // Use nerd fonts
 		switch ci.State {
-		case container.StateRunning:
+		case "running":
 			return " "
-		case container.StatePaused:
+		case "paused":
 			return " "
-		case container.StateExited:
+		case "exited":
 			return " "
 		default:
 			return " "
@@ -144,11 +143,11 @@ func (ci ContainerItem) Title() string {
 
 	var titleColor lipgloss.Color
 	switch ci.State {
-	case container.StateRunning:
+	case "running":
 		titleColor = colors.Success()
-	case container.StatePaused:
+	case "paused":
 		titleColor = colors.Warning()
-	case container.StateExited:
+	case "exited":
 		titleColor = colors.Muted()
 	default:
 		titleColor = colors.Muted()

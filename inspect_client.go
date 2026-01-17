@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/client"
 )
 
 func main() {
-	c, _ := client.New(client.FromEnv)
+	c, _ := client.NewClientWithOpts(client.FromEnv)
 	t := reflect.TypeOf(c)
 	fmt.Printf("Client Type: %s\n", t)
 	for i := range t.NumMethod() {
