@@ -7,7 +7,7 @@ import (
 
 func Primary() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Primary.IsAssigned() {
+	if cfg != nil && cfg.Theme.Primary.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Primary)
 	}
 
@@ -16,7 +16,7 @@ func Primary() lipgloss.Color {
 
 func Border() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Border.IsAssigned() {
+	if cfg != nil && cfg.Theme.Border.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Border)
 	}
 
@@ -25,7 +25,7 @@ func Border() lipgloss.Color {
 
 func Text() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Text.IsAssigned() {
+	if cfg != nil && cfg.Theme.Text.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Text)
 	}
 
@@ -34,7 +34,7 @@ func Text() lipgloss.Color {
 
 func Muted() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Muted.IsAssigned() {
+	if cfg != nil && cfg.Theme.Muted.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Muted)
 	}
 
@@ -43,7 +43,7 @@ func Muted() lipgloss.Color {
 
 func Selected() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Selected.IsAssigned() {
+	if cfg != nil && cfg.Theme.Selected.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Selected)
 	}
 
@@ -52,7 +52,7 @@ func Selected() lipgloss.Color {
 
 func Success() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Success.IsAssigned() {
+	if cfg != nil && cfg.Theme.Success.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Success)
 	}
 
@@ -61,7 +61,7 @@ func Success() lipgloss.Color {
 
 func Warning() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Warning.IsAssigned() {
+	if cfg != nil && cfg.Theme.Warning.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Warning)
 	}
 
@@ -70,7 +70,7 @@ func Warning() lipgloss.Color {
 
 func Error() lipgloss.Color {
 	cfg := context.GetConfig()
-	if cfg.Theme.Error.IsAssigned() {
+	if cfg != nil && cfg.Theme.Error.IsAssigned() {
 		return lipgloss.Color(cfg.Theme.Error)
 	}
 

@@ -145,13 +145,13 @@ func (ci ContainerItem) Title() string {
 	var titleColor lipgloss.Color
 	switch ci.State {
 	case container.StateRunning:
-		titleColor = colors.Green()
+		titleColor = colors.Success()
 	case container.StatePaused:
-		titleColor = colors.Yellow()
+		titleColor = colors.Warning()
 	case container.StateExited:
-		titleColor = colors.Gray()
+		titleColor = colors.Muted()
 	default:
-		titleColor = colors.Gray()
+		titleColor = colors.Muted()
 	}
 	title = lipgloss.NewStyle().
 		Foreground(titleColor).
@@ -161,9 +161,9 @@ func (ci ContainerItem) Title() string {
 		var isSelectedColor lipgloss.Color
 		switch ci.isSelected {
 		case true:
-			isSelectedColor = colors.Blue()
+			isSelectedColor = colors.Selected()
 		case false:
-			isSelectedColor = colors.White()
+			isSelectedColor = colors.Text()
 		}
 		statusIcon = lipgloss.NewStyle().
 			Foreground(isSelectedColor).

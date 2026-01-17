@@ -121,19 +121,19 @@ func (dc DeleteConfirmation) View() string {
 	hoveredButtonStyle := lipgloss.NewStyle().
 		Background(colors.Primary()).
 		Bold(true).
-		Foreground(colors.Black()).
+		Foreground(colors.Text()).
 		Padding(0, 1)
 
 	defaultButtonStyle := lipgloss.NewStyle().
-		Background(colors.Gray()).
-		Foreground(colors.White()).
+		Background(colors.Muted()).
+		Foreground(colors.Text()).
 		Padding(0, 1)
 
 	confirmButton := confirm.String()
 	declineButton := decline.String()
 
 	if dc.hoveredButtonOption == confirm {
-		confirmButton = hoveredButtonStyle.Background(colors.Red()).Render(confirmButton)
+		confirmButton = hoveredButtonStyle.Background(colors.Error()).Render(confirmButton)
 		declineButton = defaultButtonStyle.Render(declineButton)
 	} else {
 		confirmButton = defaultButtonStyle.Render(confirmButton)
@@ -155,7 +155,7 @@ func (dc DeleteConfirmation) View() string {
 	}
 
 	if dc.hoveredButtonOption == confirm {
-		dc.style = dc.style.BorderForeground(colors.Red())
+		dc.style = dc.style.BorderForeground(colors.Error())
 	}
 
 	return dc.style.Render(lipgloss.JoinVertical(

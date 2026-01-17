@@ -65,16 +65,16 @@ func (n NetworkItem) Title() string {
 
 	title := fmt.Sprintf("%s %s (%s)", titleOrnament, n.Network.Name, n.Network.Driver)
 	title = lipgloss.NewStyle().
-		Foreground(colors.Gray()).
+		Foreground(colors.Muted()).
 		Render(title)
 
 	statusIcon := n.getIsSelectedIcon()
 	var isSelectedColor lipgloss.Color
 	switch n.isSelected {
 	case true:
-		isSelectedColor = colors.Blue()
+		isSelectedColor = colors.Selected()
 	case false:
-		isSelectedColor = colors.White()
+		isSelectedColor = colors.Text()
 	}
 	statusIcon = lipgloss.NewStyle().
 		Foreground(isSelectedColor).

@@ -128,12 +128,12 @@ func TestColorOverrides(t *testing.T) {
 		t.Errorf("expected Border to be '#585b70', got %s", border)
 	}
 
-	text := White()
+	text := Text()
 	if text != lipgloss.Color("#cdd6f4") {
 		t.Errorf("expected White/Text to be '#cdd6f4', got %s", text)
 	}
 
-	muted := Gray()
+	muted := Muted()
 	if muted != lipgloss.Color("#585b70") {
 		t.Errorf("expected Gray/Muted to be '#585b70', got %s", muted)
 	}
@@ -143,17 +143,17 @@ func TestColorOverrides(t *testing.T) {
 		t.Errorf("expected Selected to be '#89b4fa', got %s", selected)
 	}
 
-	success := Green()
+	success := Success()
 	if success != lipgloss.Color("#a6e3a1") {
 		t.Errorf("expected Green/Success to be '#a6e3a1', got %s", success)
 	}
 
-	warning := Yellow()
+	warning := Warning()
 	if warning != lipgloss.Color("#f9e2af") {
 		t.Errorf("expected Yellow/Warning to be '#f9e2af', got %s", warning)
 	}
 
-	errColor := Red()
+	errColor := Error()
 	if errColor != lipgloss.Color("#f38ba8") {
 		t.Errorf("expected Red/Error to be '#f38ba8', got %s", errColor)
 	}

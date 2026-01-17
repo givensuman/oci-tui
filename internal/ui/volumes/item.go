@@ -65,16 +65,16 @@ func (v VolumeItem) Title() string {
 
 	title := fmt.Sprintf("%s %s (%s)", titleOrnament, v.Volume.Name, v.Volume.Driver)
 	title = lipgloss.NewStyle().
-		Foreground(colors.Gray()).
+		Foreground(colors.Muted()).
 		Render(title)
 
 	statusIcon := v.getIsSelectedIcon()
 	var isSelectedColor lipgloss.Color
 	switch v.isSelected {
 	case true:
-		isSelectedColor = colors.Blue()
+		isSelectedColor = colors.Selected()
 	case false:
-		isSelectedColor = colors.White()
+		isSelectedColor = colors.Text()
 	}
 	statusIcon = lipgloss.NewStyle().
 		Foreground(isSelectedColor).

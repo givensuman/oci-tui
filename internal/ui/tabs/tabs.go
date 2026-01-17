@@ -139,14 +139,14 @@ func max(a, b int) int {
 var (
 	// Active tab: Primary color background, distinct text
 	activeTabStyle = lipgloss.NewStyle().
-			Foreground(colors.Black()).
-			Background(colors.White()).
+			Foreground(colors.Primary()).
+			Background(colors.Text()).
 			Bold(true)
 
 	// Inactive tab: Border/Gray background, Muted/Gray text (or White if background is dark enough)
 	// Using Border color (Gray) for background to create a 'bar' effect.
 	inactiveTabStyle = lipgloss.NewStyle().
-				Foreground(colors.Gray())
+				Foreground(colors.Muted())
 
 	// Gap: Same background as inactive tabs to create a continuous bar
 	tabGapStyle = lipgloss.NewStyle()
