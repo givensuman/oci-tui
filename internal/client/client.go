@@ -69,8 +69,8 @@ func NewClient() (*ClientWrapper, error) {
 }
 
 // CloseClient closes the Docker client connection.
-func (cw *ClientWrapper) CloseClient() error {
-	return cw.client.Close()
+func (clientWrapper *ClientWrapper) CloseClient() error {
+	return clientWrapper.client.Close()
 }
 
 // GetContainers retrieves a list of all Docker containers.
@@ -171,7 +171,7 @@ func (clientWrapper *ClientWrapper) GetContainerState(containerID string) (strin
 		return "unknown", err
 	}
 
-	return string(inspectResponse.State.Status), nil
+	return inspectResponse.State.Status, nil
 }
 
 // PauseContainer pauses a specific Docker container by its ID.

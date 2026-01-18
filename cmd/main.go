@@ -69,7 +69,7 @@ func main() {
 
 			context.SetConfig(cfg)
 
-			// Initialize the shared Docker client (handle errors robustly)
+			// Initialize the shared Docker client
 			if err := context.InitializeClient(); err != nil {
 				return fmt.Errorf("failed to initialize Docker client: %w", err)
 			}
@@ -81,7 +81,7 @@ func main() {
 
 			context.InitializeLog()
 
-			// Start the UI; propagate any error
+			// Start the UI
 			if err := ui.Start(); err != nil {
 				return fmt.Errorf("failed to run application: %w", err)
 			}

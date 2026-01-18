@@ -194,7 +194,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				volumeName := confirmMsg.Action.Payload.(string)
 				err := context.GetClient().RemoveVolume(volumeName)
 				if err != nil {
-					// Error handling could be added here.
+					break
 				}
 			}
 			model.sessionState = viewMain

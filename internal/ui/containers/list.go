@@ -163,86 +163,86 @@ func newContainerList() ContainerList {
 	}
 }
 
-func (cl *ContainerList) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
-	cl.WindowWidth = msg.Width
-	cl.WindowHeight = msg.Height
+func (containerList *ContainerList) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
+	containerList.WindowWidth = msg.Width
+	containerList.WindowHeight = msg.Height
 
 	layoutManager := shared.NewLayoutManager(msg.Width, msg.Height)
-	masterLayout, _ := layoutManager.CalculateMasterDetail(cl.style)
+	masterLayout, _ := layoutManager.CalculateMasterDetail(containerList.style)
 
-	cl.style = cl.style.Width(masterLayout.Width).Height(masterLayout.Height)
-	cl.list.SetWidth(masterLayout.ContentWidth)
-	cl.list.SetHeight(masterLayout.ContentHeight)
+	containerList.style = containerList.style.Width(masterLayout.Width).Height(masterLayout.Height)
+	containerList.list.SetWidth(masterLayout.ContentWidth)
+	containerList.list.SetHeight(masterLayout.ContentHeight)
 }
 
-func (cl ContainerList) Init() tea.Cmd {
+func (containerList ContainerList) Init() tea.Cmd {
 	return nil
 }
 
-func (cl ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (containerList ContainerList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case MessageConfirmDelete:
-		cmds = append(cmds, cl.handleConfirmationOfRemoveContainers())
+		cmds = append(cmds, containerList.handleConfirmationOfRemoveContainers())
 
 	case MessageContainerOperationResult:
-		if cmd := cl.handleContainerOperationResult(msg); cmd != nil {
+		if cmd := containerList.handleContainerOperationResult(msg); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
 
 	case tea.KeyMsg:
-		if cl.list.FilterState() == list.Filtering {
+		if containerList.list.FilterState() == list.Filtering {
 			break
 		}
 
 		if msg.String() == "q" {
-			return cl, tea.Quit
+			return containerList, tea.Quit
 		}
 
 		switch {
-		case key.Matches(msg, cl.keybindings.switchTab):
-			return cl, nil
-		case key.Matches(msg, cl.keybindings.pauseContainer):
-			cmds = append(cmds, cl.handlePauseContainers())
-		case key.Matches(msg, cl.keybindings.unpauseContainer):
-			cmds = append(cmds, cl.handleUnpauseContainers())
-		case key.Matches(msg, cl.keybindings.startContainer):
-			cmds = append(cmds, cl.handleStartContainers())
-		case key.Matches(msg, cl.keybindings.stopContainer):
-			cmds = append(cmds, cl.handleStopContainers())
-		case key.Matches(msg, cl.keybindings.removeContainer):
-			cmds = append(cmds, cl.handleRemoveContainers())
-		case key.Matches(msg, cl.keybindings.showLogs):
-			if cmd := cl.handleShowLogs(); cmd != nil {
+		case key.Matches(msg, containerList.keybindings.switchTab):
+			return containerList, nil
+		case key.Matches(msg, containerList.keybindings.pauseContainer):
+			cmds = append(cmds, containerList.handlePauseContainers())
+		case key.Matches(msg, containerList.keybindings.unpauseContainer):
+			cmds = append(cmds, containerList.handleUnpauseContainers())
+		case key.Matches(msg, containerList.keybindings.startContainer):
+			cmds = append(cmds, containerList.handleStartContainers())
+		case key.Matches(msg, containerList.keybindings.stopContainer):
+			cmds = append(cmds, containerList.handleStopContainers())
+		case key.Matches(msg, containerList.keybindings.removeContainer):
+			cmds = append(cmds, containerList.handleRemoveContainers())
+		case key.Matches(msg, containerList.keybindings.showLogs):
+			if cmd := containerList.handleShowLogs(); cmd != nil {
 				cmds = append(cmds, cmd)
 			}
-		case key.Matches(msg, cl.keybindings.execShell):
-			if cmd := cl.handleExecShell(); cmd != nil {
+		case key.Matches(msg, containerList.keybindings.execShell):
+			if cmd := containerList.handleExecShell(); cmd != nil {
 				cmds = append(cmds, cmd)
 			}
-		case key.Matches(msg, cl.keybindings.toggleSelection):
-			cl.handleToggleSelection()
-		case key.Matches(msg, cl.keybindings.toggleSelectionOfAll):
-			cl.handleToggleSelectionOfAll()
+		case key.Matches(msg, containerList.keybindings.toggleSelection):
+			containerList.handleToggleSelection()
+		case key.Matches(msg, containerList.keybindings.toggleSelectionOfAll):
+			containerList.handleToggleSelectionOfAll()
 		}
 	}
 
-	updatedList, listCmd := cl.list.Update(msg)
-	cl.list = updatedList
+	updatedList, listCmd := containerList.list.Update(msg)
+	containerList.list = updatedList
 	cmds = append(cmds, listCmd)
 
 	if _, ok := msg.(spinner.TickMsg); !ok {
-		for _, item := range cl.list.Items() {
+		for _, item := range containerList.list.Items() {
 			if containerItem, ok := item.(ContainerItem); ok && containerItem.isWorking {
 				cmds = append(cmds, containerItem.spinner.Tick)
 			}
 		}
 	}
 
-	return cl, tea.Batch(cmds...)
+	return containerList, tea.Batch(cmds...)
 }
 
-func (cl ContainerList) View() string {
-	return cl.style.Render(cl.list.View())
+func (containerList ContainerList) View() string {
+	return containerList.style.Render(containerList.list.View())
 }

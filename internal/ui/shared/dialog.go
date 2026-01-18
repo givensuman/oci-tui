@@ -99,7 +99,7 @@ func (dialog SmartDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (dialog SmartDialog) View() string {
-	var buttonViews []string
+	buttonViews := make([]string, 0, len(dialog.buttons))
 
 	defaultButtonStyle := lipgloss.NewStyle().
 		Padding(0, 1).

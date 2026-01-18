@@ -57,35 +57,6 @@ func (containerItem ContainerItem) getTitleOrnament() string {
 	return ""
 }
 
-func (containerItem ContainerItem) getContainerStateIcon() string {
-	switch context.GetConfig().NoNerdFonts {
-	case true: // Don't use nerd fonts.
-		switch containerItem.State {
-		case "running":
-			return ">"
-		case "paused":
-			return "="
-		case "exited":
-			return "#"
-		default:
-			return ">"
-		}
-	case false: // Use nerd fonts.
-		switch containerItem.State {
-		case "running":
-			return " "
-		case "paused":
-			return " "
-		case "exited":
-			return " "
-		default:
-			return " "
-		}
-	}
-
-	return ">"
-}
-
 func newDefaultDelegate() list.DefaultDelegate {
 	delegate := list.NewDefaultDelegate()
 	delegate = shared.ChangeDelegateStyles(delegate)
