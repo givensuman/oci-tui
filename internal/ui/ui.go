@@ -303,7 +303,26 @@ func (m Model) View() string {
 
 	// Perform the overlay
 	if len(fullLines) >= renderedHelpHeight {
-		topLines := fullLines[:len(fullLines)-renderedHelpHeight]
+		// Fill the gap between content and help with empty lines if needed
+		// contentHeight := len(fullLines)
+		// We want help at the VERY bottom.
+		// If fullLines is shorter than window height, we pad it.
+		// If fullLines matches window height, we replace bottom lines.
+
+		// Ensure full view fills the screen height
+		for len(fullLines) < m.height {
+			fullLines = append(fullLines, "")
+		}
+
+		// Now replace the bottom N lines
+		cutPoint := m.height - renderedHelpHeight
+		if cutPoint < 0 {
+			cutPoint = 0
+		}
+		if cutPoint > len(fullLines) {
+			cutPoint = len(fullLines)
+		}
+		topLines := fullLines[:cutPoint]
 		return strings.Join(append(topLines, renderedHelpLines...), "\n")
 	}
 

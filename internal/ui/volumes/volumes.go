@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/givensuman/containertui/internal/client"
@@ -15,10 +16,34 @@ import (
 	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
+type detailsKeybindings struct {
+	Up     key.Binding
+	Down   key.Binding
+	Switch key.Binding
+}
+
+func newDetailsKeybindings() detailsKeybindings {
+	return detailsKeybindings{
+		Up: key.NewBinding(
+			key.WithKeys("up", "k"),
+			key.WithHelp("↑/k", "up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys("down", "j"),
+			key.WithHelp("↓/j", "down"),
+		),
+		Switch: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "switch focus"),
+		),
+	}
+}
+
 type keybindings struct {
 	toggleSelection      key.Binding
 	toggleSelectionOfAll key.Binding
 	remove               key.Binding
+	switchTab            key.Binding
 }
 
 func newKeybindings() *keybindings {
@@ -34,6 +59,10 @@ func newKeybindings() *keybindings {
 		remove: key.NewBinding(
 			key.WithKeys("r"),
 			key.WithHelp("r", "remove"),
+		),
+		switchTab: key.NewBinding(
+			key.WithKeys("1", "2", "3", "4", "tab", "shift+tab"),
+			key.WithHelp("1-4/tab", "switch tab"),
 		),
 	}
 }
@@ -66,17 +95,26 @@ const (
 	viewOverlay
 )
 
+const (
+	focusList = iota
+	focusDetails
+)
+
 type Model struct {
 	shared.Component
 	style           lipgloss.Style
 	list            list.Model
+	viewport        viewport.Model
 	selectedVolumes *selectedVolumes
 	keybindings     *keybindings
 
 	// Overlay support
 	sessionState sessionState
-	foreground   tea.Model
-	overlayModel *overlay.Model
+	// focusedView governs which panel is active (0: List, 1: Details)
+	focusedView        int
+	detailsKeybindings detailsKeybindings
+	foreground         tea.Model
+	overlayModel       *overlay.Model
 }
 
 var (
@@ -102,6 +140,7 @@ func New() Model {
 
 	delegate := newDefaultDelegate()
 	l := list.New(items, delegate, width, height)
+	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
@@ -116,15 +155,21 @@ func New() Model {
 			keybindings.toggleSelection,
 			keybindings.toggleSelectionOfAll,
 			keybindings.remove,
+			keybindings.switchTab,
 		}
 	}
 
+	vp := viewport.New(0, 0)
+
 	m := Model{
-		style:           style,
-		list:            l,
-		selectedVolumes: newSelectedVolumes(),
-		keybindings:     keybindings,
-		sessionState:    viewMain,
+		style:              style,
+		list:               l,
+		viewport:           vp,
+		selectedVolumes:    newSelectedVolumes(),
+		keybindings:        keybindings,
+		sessionState:       viewMain,
+		focusedView:        focusList,
+		detailsKeybindings: newDetailsKeybindings(),
 	}
 
 	// Initialize overlay with nil content initially
@@ -168,55 +213,96 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case viewMain:
 		// Main loop handling
-		switch msg := msg.(type) {
-		case tea.WindowSizeMsg:
-			m.UpdateWindowDimensions(msg)
-		case tea.KeyMsg:
-			if m.list.FilterState() == list.Filtering {
-				break
-			}
 
-			switch {
-			case key.Matches(msg, m.keybindings.toggleSelection):
-				m.handleToggleSelection()
-			case key.Matches(msg, m.keybindings.toggleSelectionOfAll):
-				m.handleToggleSelectionOfAll()
-			case key.Matches(msg, m.keybindings.remove):
-				// Trigger remove dialog
-				item := m.list.SelectedItem()
-				if item != nil {
-					if v, ok := item.(VolumeItem); ok {
-						// Check usage
-						usedBy, _ := context.GetClient().GetContainersUsingVolume(v.Volume.Name)
-						if len(usedBy) > 0 {
-							// Show warning dialog with navigation option
-							dialog := shared.NewSmartDialog(
-								fmt.Sprintf("Volume %s is used by %d containers (%v).\nCannot delete.", v.Volume.Name, len(usedBy), usedBy),
-								[]shared.DialogButton{
-									{Label: "OK", IsSafe: true},
-								},
-							)
-							m.foreground = dialog
-							m.sessionState = viewOverlay
-						} else {
-							// Show confirmation
-							dialog := shared.NewSmartDialog(
-								fmt.Sprintf("Are you sure you want to delete volume %s?", v.Volume.Name),
-								[]shared.DialogButton{
-									{Label: "Cancel", IsSafe: true},
-									{Label: "Delete", IsSafe: false, Action: shared.SmartDialogAction{Type: "DeleteVolume", Payload: v.Volume.Name}},
-								},
-							)
-							m.foreground = dialog
-							m.sessionState = viewOverlay
+		// Handle focus switching
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			if msg.String() == "tab" && m.list.FilterState() != list.Filtering {
+				if m.focusedView == focusList {
+					m.focusedView = focusDetails
+				} else {
+					m.focusedView = focusList
+				}
+				return m, nil
+			}
+		}
+
+		isKeyMsg := false
+		if _, ok := msg.(tea.KeyMsg); ok {
+			isKeyMsg = true
+		}
+
+		// Update list if focused or not a key message
+		if !isKeyMsg || m.focusedView == focusList {
+			switch msg := msg.(type) {
+			case tea.WindowSizeMsg:
+				m.UpdateWindowDimensions(msg)
+			case tea.KeyMsg:
+				if m.list.FilterState() == list.Filtering {
+					break
+				}
+
+				switch {
+				// allow passing through of tab switching keys
+				case key.Matches(msg, m.keybindings.switchTab):
+					return m, nil
+				case key.Matches(msg, m.keybindings.toggleSelection):
+					m.handleToggleSelection()
+				case key.Matches(msg, m.keybindings.toggleSelectionOfAll):
+					m.handleToggleSelectionOfAll()
+				case key.Matches(msg, m.keybindings.remove):
+					// Trigger remove dialog
+					item := m.list.SelectedItem()
+					if item != nil {
+						if v, ok := item.(VolumeItem); ok {
+							// Check usage
+							usedBy, _ := context.GetClient().GetContainersUsingVolume(v.Volume.Name)
+							if len(usedBy) > 0 {
+								// Show warning dialog with navigation option
+								dialog := shared.NewSmartDialog(
+									fmt.Sprintf("Volume %s is used by %d containers (%v).\nCannot delete.", v.Volume.Name, len(usedBy), usedBy),
+									[]shared.DialogButton{
+										{Label: "OK", IsSafe: true},
+									},
+								)
+								m.foreground = dialog
+								m.sessionState = viewOverlay
+							} else {
+								// Show confirmation
+								dialog := shared.NewSmartDialog(
+									fmt.Sprintf("Are you sure you want to delete volume %s?", v.Volume.Name),
+									[]shared.DialogButton{
+										{Label: "Cancel", IsSafe: true},
+										{Label: "Delete", IsSafe: false, Action: shared.SmartDialogAction{Type: "DeleteVolume", Payload: v.Volume.Name}},
+									},
+								)
+								m.foreground = dialog
+								m.sessionState = viewOverlay
+							}
 						}
 					}
 				}
 			}
+			m.list, cmd = m.list.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 
-		m.list, cmd = m.list.Update(msg)
-		cmds = append(cmds, cmd)
+		// Check for selection change (if list updated)
+		item := m.list.SelectedItem()
+		if item != nil {
+			if v, ok := item.(VolumeItem); ok {
+				content := fmt.Sprintf(
+					"Name: %s\nDriver: %s\nMountpoint: %s",
+					v.Volume.Name, v.Volume.Driver, v.Volume.Mountpoint,
+				)
+				m.viewport.SetContent(content)
+			}
+		}
+
+		// Update viewport if focused or not a key message
+		if !isKeyMsg || m.focusedView == focusDetails {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	// Always update overlay model to sync state
@@ -294,23 +380,24 @@ func (m Model) View() string {
 	// Render the list (background)
 	listView := m.style.Render(m.list.View())
 
+	borderColor := colors.Muted()
+	if m.focusedView == focusDetails {
+		borderColor = colors.Primary()
+	}
+
 	// Render the detail view (side pane)
 	detailStyle := lipgloss.NewStyle().
 		Width(detail.Width - 2). // Subtract 2 for border width compensation
 		Height(detail.Height).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(colors.Muted()).
+		BorderForeground(borderColor).
 		Padding(1)
 
 	var detailContent string
-	item := m.list.SelectedItem()
-	if item != nil {
-		if v, ok := item.(VolumeItem); ok {
-			detailContent = fmt.Sprintf(
-				"Name: %s\nDriver: %s\nMountpoint: %s",
-				v.Volume.Name, v.Volume.Driver, v.Volume.Mountpoint,
-			)
-		}
+	if m.list.SelectedItem() != nil {
+		detailContent = m.viewport.View()
+	} else {
+		detailContent = lipgloss.NewStyle().Foreground(colors.Muted()).Render("No volume selected")
 	}
 
 	detailView := detailStyle.Render(detailContent)
@@ -327,6 +414,19 @@ func (m *Model) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 
 	m.style = m.style.Width(master.Width).Height(master.Height) // Update style dimensions
 
+	// Update viewport size
+	_, detail := lm.CalculateMasterDetail(lipgloss.NewStyle())
+	width := detail.Width - 4
+	height := detail.Height - 2
+	if width < 0 {
+		width = 0
+	}
+	if height < 0 {
+		height = 0
+	}
+	m.viewport.Width = width
+	m.viewport.Height = height
+
 	switch m.sessionState {
 	case viewMain:
 		if m.list.Width() != master.ContentWidth || m.list.Height() != master.ContentHeight {
@@ -342,9 +442,29 @@ func (m *Model) UpdateWindowDimensions(msg tea.WindowSizeMsg) {
 }
 
 func (m Model) ShortHelp() []key.Binding {
-	return m.list.ShortHelp()
+	if m.focusedView == focusList {
+		return m.list.ShortHelp()
+	} else if m.focusedView == focusDetails {
+		return []key.Binding{
+			m.detailsKeybindings.Up,
+			m.detailsKeybindings.Down,
+			m.detailsKeybindings.Switch,
+		}
+	}
+	return nil
 }
 
 func (m Model) FullHelp() [][]key.Binding {
-	return m.list.FullHelp()
+	if m.focusedView == focusList {
+		return m.list.FullHelp()
+	} else if m.focusedView == focusDetails {
+		return [][]key.Binding{
+			{
+				m.detailsKeybindings.Up,
+				m.detailsKeybindings.Down,
+				m.detailsKeybindings.Switch,
+			},
+		}
+	}
+	return nil
 }

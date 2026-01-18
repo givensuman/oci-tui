@@ -445,7 +445,7 @@ func formatInspection(c types.ContainerJSON, stats client.ContainerStats, cpuHis
 			b.WriteString(graph + "\n\n")
 
 			// Additional Stats
-			statsStyle := lipgloss.NewStyle().Foreground(colors.Secondary())
+			statsStyle := lipgloss.NewStyle().Foreground(colors.Primary())
 			memUsageMB := stats.MemUsage / 1024 / 1024
 			memLimitMB := stats.MemLimit / 1024 / 1024
 			b.WriteString(statsStyle.Render(fmt.Sprintf("CPU: %.2f%% | Mem: %.0fMB / %.0fMB",
@@ -454,7 +454,7 @@ func formatInspection(c types.ContainerJSON, stats client.ContainerStats, cpuHis
 	}
 
 	// Helper for sections
-	sectionHeader := lipgloss.NewStyle().Bold(true).Foreground(colors.Secondary()).Underline(true).MarginTop(1).MarginBottom(0)
+	sectionHeader := lipgloss.NewStyle().Bold(true).Foreground(colors.Primary()).Underline(true).MarginTop(1).MarginBottom(0)
 
 	// Config
 	b.WriteString(sectionHeader.Render("Configuration") + "\n")

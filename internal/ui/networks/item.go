@@ -63,7 +63,7 @@ func (n NetworkItem) getTitleOrnament() string {
 func (n NetworkItem) Title() string {
 	titleOrnament := n.getTitleOrnament()
 
-	title := fmt.Sprintf("%s %s (%s)", titleOrnament, n.Network.Name, n.Network.Driver)
+	title := fmt.Sprintf("%s %s", titleOrnament, n.Network.Name)
 	title = lipgloss.NewStyle().
 		Foreground(colors.Muted()).
 		Render(title)
@@ -84,7 +84,11 @@ func (n NetworkItem) Title() string {
 }
 
 func (n NetworkItem) Description() string {
-	return fmt.Sprintf("ID: %s | Scope: %s", n.Network.ID[:12], n.Network.Scope)
+	shortID := n.Network.ID
+	if len(n.Network.ID) > 12 {
+		shortID = n.Network.ID[:12]
+	}
+	return fmt.Sprintf("   %s", shortID)
 }
 
 func (n NetworkItem) FilterValue() string {

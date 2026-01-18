@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/givensuman/containertui/internal/client"
 	"github.com/givensuman/containertui/internal/colors"
 	"github.com/givensuman/containertui/internal/context"
@@ -120,7 +119,7 @@ func newSpinner() spinner.Model {
 }
 
 func (ci ContainerItem) FilterValue() string {
-	return ci.Name
+	return ci.Title()
 }
 
 func (ci ContainerItem) Title() string {
@@ -131,14 +130,10 @@ func (ci ContainerItem) Title() string {
 		statusIcon = ci.getIsSelectedIcon()
 	}
 	titleOrnament := ci.getTitleOrnament()
-	containerStateIcon := ci.getContainerStateIcon()
-	shortID := ci.ID[len(ci.ID)-12:]
-
-	title := fmt.Sprintf("%s %s %s (%s)",
+	// containerStateIcon := ci.getContainerStateIcon()
+	title := fmt.Sprintf("%s %s",
 		titleOrnament,
-		containerStateIcon,
 		ci.Name,
-		shortID,
 	)
 
 	var titleColor lipgloss.Color
@@ -173,5 +168,9 @@ func (ci ContainerItem) Title() string {
 }
 
 func (ci ContainerItem) Description() string {
-	return fmt.Sprintf("   %s", ansi.Truncate(ci.Image, 24, "..."))
+	shortID := ci.ID
+	if len(ci.ID) > 12 {
+		shortID = ci.ID[:12]
+	}
+	return fmt.Sprintf("   %s", shortID)
 }

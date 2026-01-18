@@ -129,6 +129,7 @@ func newContainerList() ContainerList {
 
 	list := list.New(containerItems, newDefaultDelegate(), width, height)
 
+	list.SetShowHelp(false)
 	list.SetShowTitle(false)
 	list.SetShowStatusBar(false)
 	list.SetFilteringEnabled(true)

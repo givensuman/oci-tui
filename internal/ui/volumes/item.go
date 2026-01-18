@@ -63,7 +63,7 @@ func (v VolumeItem) getTitleOrnament() string {
 func (v VolumeItem) Title() string {
 	titleOrnament := v.getTitleOrnament()
 
-	title := fmt.Sprintf("%s %s (%s)", titleOrnament, v.Volume.Name, v.Volume.Driver)
+	title := fmt.Sprintf("%s %s", titleOrnament, v.Volume.Name)
 	title = lipgloss.NewStyle().
 		Foreground(colors.Muted()).
 		Render(title)
@@ -84,7 +84,7 @@ func (v VolumeItem) Title() string {
 }
 
 func (v VolumeItem) Description() string {
-	return fmt.Sprintf("Mountpoint: %s", v.Volume.Mountpoint)
+	return fmt.Sprintf("   %s", v.Volume.Driver)
 }
 
 func (v VolumeItem) FilterValue() string {

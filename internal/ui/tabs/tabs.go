@@ -2,6 +2,8 @@
 package tabs
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -32,8 +34,6 @@ type KeyMap struct {
 	SwitchToImages     key.Binding
 	SwitchToVolumes    key.Binding
 	SwitchToNetworks   key.Binding
-	NextTab            key.Binding
-	PrevTab            key.Binding
 }
 
 func NewKeyMap() KeyMap {
@@ -53,14 +53,6 @@ func NewKeyMap() KeyMap {
 		SwitchToNetworks: key.NewBinding(
 			key.WithKeys("4"),
 			key.WithHelp("4", "networks"),
-		),
-		NextTab: key.NewBinding(
-			key.WithKeys("tab", "right"),
-			key.WithHelp("tab/right", "next tab"),
-		),
-		PrevTab: key.NewBinding(
-			key.WithKeys("shift+tab", "left"),
-			key.WithHelp("shift+tab/left", "prev tab"),
 		),
 	}
 }
@@ -88,10 +80,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.KeyMap.NextTab):
-			m.ActiveTab = (m.ActiveTab + 1) % Tab(len(m.Tabs))
-		case key.Matches(msg, m.KeyMap.PrevTab):
-			m.ActiveTab = (m.ActiveTab - 1 + Tab(len(m.Tabs))) % Tab(len(m.Tabs))
 		case key.Matches(msg, m.KeyMap.SwitchToContainers):
 			m.ActiveTab = Containers
 		case key.Matches(msg, m.KeyMap.SwitchToImages):
@@ -123,7 +111,7 @@ func (m Model) View() string {
 	// Fill the rest of the line with the gap style
 	// We need to account for borders in width calculation
 	gapWidth := max(0, m.WindowWidth-lipgloss.Width(row)-2) // -2 for safety margin
-	gap := tabGapStyle.Width(gapWidth).Render("")
+	gap := strings.Repeat(" ", gapWidth)
 
 	return lipgloss.JoinHorizontal(lipgloss.Bottom, row, gap)
 }
@@ -138,22 +126,15 @@ func max(a, b int) int {
 var (
 	// Active tab: Primary color background, distinct text
 	activeTabStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder(), true, true, false, true).
-			BorderForeground(colors.Primary()).
 			Foreground(colors.Primary()).
-			Padding(0, 1)
+			Padding(0, 1).
+			Bold(true)
 
 	// Inactive tab: Muted color, still needs rounded border structure to align with active tab but we hide top/sides?
 	// Actually, standard TUI tab design often puts a bottom border on the GAP, and NO bottom border on the active tab.
 	// But let's try to make them all visible first.
 	inactiveTabStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder(), true, true, false, true).
-				BorderForeground(colors.Muted()).
 				Foreground(colors.Muted()).
-				Padding(0, 1)
-
-	// Gap: Bottom border only to complete the line
-	tabGapStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(colors.Muted())
+				Padding(0, 1).
+				Bold(false)
 )

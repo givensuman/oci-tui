@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 
 	"github.com/docker/docker/api/types"
@@ -11,6 +12,15 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 )
+
+// ContainerStats represents the CPU and memory usage of a container.
+type ContainerStats struct {
+	CPUPercent float64
+	MemUsage   float64
+	MemLimit   float64
+	NetRx      float64
+	NetTx      float64
+}
 
 // Container represents a Docker container with essential details.
 type Container struct {
@@ -408,4 +418,56 @@ func (cw *ClientWrapper) GetContainersUsingNetwork(networkID string) ([]string, 
 		}
 	}
 	return usedBy, nil
+}
+
+// GetContainerStats retrieves the current CPU and memory usage of a container.
+func (cw *ClientWrapper) GetContainerStats(id string) (ContainerStats, error) {
+	stats, err := cw.client.ContainerStats(context.Background(), id, false)
+	if err != nil {
+		return ContainerStats{}, err
+	}
+	defer stats.Body.Close()
+
+	var v types.StatsJSON
+	if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {
+		return ContainerStats{}, err
+	}
+
+	var cpuPercent float64
+	cpuDelta := float64(v.CPUStats.CPUUsage.TotalUsage) - float64(v.PreCPUStats.CPUUsage.TotalUsage)
+	systemDelta := float64(v.CPUStats.SystemUsage) - float64(v.PreCPUStats.SystemUsage)
+
+	if systemDelta > 0 && cpuDelta > 0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+
+	// Calculate memory usage
+	// MemUsage is v.MemoryStats.Usage - v.MemoryStats.Stats["cache"]
+	var memUsage float64
+	if v.MemoryStats.Usage > 0 {
+		memUsage = float64(v.MemoryStats.Usage)
+		if cache, ok := v.MemoryStats.Stats["cache"]; ok {
+			memUsage -= float64(cache)
+		}
+	}
+
+	// Calculate network I/O
+	var rx, tx float64
+	for _, network := range v.Networks {
+		rx += float64(network.RxBytes)
+		tx += float64(network.TxBytes)
+	}
+
+	return ContainerStats{
+		CPUPercent: cpuPercent,
+		MemUsage:   memUsage,
+		MemLimit:   float64(v.MemoryStats.Limit),
+		NetRx:      rx,
+		NetTx:      tx,
+	}, nil
+}
+
+// InspectContainer returns the detailed inspection information for a container.
+func (cw *ClientWrapper) InspectContainer(id string) (types.ContainerJSON, error) {
+	return cw.client.ContainerInspect(context.Background(), id)
 }

@@ -73,12 +73,11 @@ func (i ImageItem) Title() string {
 	}
 
 	titleOrnament := i.getTitleOrnament()
-	shortID := i.Image.ID
-	if len(shortID) > 12 {
-		shortID = shortID[7:19] // Remove "sha256:" prefix and take first 12 chars
-	}
 
-	title := fmt.Sprintf("%s %s (%s)", titleOrnament, repoTag, shortID)
+	title := fmt.Sprintf("%s %s", titleOrnament, repoTag)
+	title = lipgloss.NewStyle().
+		Foreground(colors.Muted()).
+		Render(title)
 
 	statusIcon := i.getIsSelectedIcon()
 	var isSelectedColor lipgloss.Color
@@ -96,6 +95,9 @@ func (i ImageItem) Title() string {
 }
 
 func (i ImageItem) Description() string {
-	sizeMB := float64(i.Image.Size) / 1024 / 1024
-	return fmt.Sprintf("%.2fMB", sizeMB)
+	shortID := i.Image.ID
+	if len(shortID) > 12 {
+		shortID = shortID[7:19] // Remove "sha256:" prefix and take first 12 chars
+	}
+	return fmt.Sprintf("   %s", shortID)
 }
